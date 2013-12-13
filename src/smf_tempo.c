@@ -25,7 +25,7 @@
  *
  */
 
-/**
+/*
  * \file
  *
  * Tempo map related part.
@@ -41,7 +41,7 @@
 
 static double seconds_from_pulses(const smf_t *smf, int pulses);
 
-/**
+/*
  * If there is tempo starting at "pulses" already, return it.  Otherwise,
  * allocate new one, fill it with values from previous one (or default ones,
  * if there is no previous one) and attach it to "smf".
@@ -65,6 +65,7 @@ new_tempo(smf_t *smf, int pulses)
 		return (NULL);
 	}
 
+	tempo->ref_count = 1;
 	tempo->time_pulses = pulses;
 
 	if (previous_tempo != NULL) {
@@ -91,6 +92,16 @@ new_tempo(smf_t *smf, int pulses)
 	return (tempo);
 }
 
+/**
+ * smf_tempo_ref:
+ * @tempo: the tempo
+ *
+ * Add a reference to @tempo.
+ *
+ * Returns: (transfer full): A new reference to @tempo
+ *
+ * Since: 1.4
+ */
 smf_tempo_t *
 smf_tempo_ref(smf_tempo_t *tempo)
 {
@@ -99,6 +110,14 @@ smf_tempo_ref(smf_tempo_t *tempo)
     return tempo;
 }
 
+/**
+ * smf_tempo_unref:
+ * @tempo: (transfer full): the tempo to unref
+ *
+ * Unrefs @tempo and frees the memory if its the last reference
+ *
+ * Since: 1.4
+ */
 void
 smf_tempo_unref(smf_tempo_t *tempo)
 {
@@ -134,8 +153,8 @@ add_time_signature(smf_t *smf, int pulses, int numerator, int denominator, int c
 	return (0);
 }
 
-/**
- * \internal
+/*
+ * Internal:
  */
 void
 maybe_add_to_tempo_map(smf_event_t *event)
@@ -178,8 +197,8 @@ maybe_add_to_tempo_map(smf_event_t *event)
 	return;
 }
 
-/**
- * \internal
+/*
+ * Internal:
  *
  * This is an internal function, called from smf_track_remove_event when tempo-related
  * event being removed does not require recreation of tempo map, i.e. there are no events
@@ -239,7 +258,8 @@ pulses_from_seconds(const smf_t *smf, double seconds)
 }
 
 /**
- * \internal
+ * smf_file_create_tempo_map_and_compute_seconds: (skip)
+ * @smf: the SMF
  *
  * Computes value of event->time_seconds for all events in smf.
  * Warning: rewinds the smf.
@@ -266,6 +286,13 @@ smf_file_create_tempo_map_and_compute_seconds(smf_t *smf)
 	/* Not reached. */
 }
 
+/**
+ * smf_file_get_tempo_by_number:
+ * @smf: the SMF
+ * @number: tempo number
+ *
+ * Returns: (transfer none): tempo instance given its number
+ */
 smf_tempo_t *
 smf_file_get_tempo_by_number(const smf_t *smf, int number)
 {
@@ -278,7 +305,11 @@ smf_file_get_tempo_by_number(const smf_t *smf, int number)
 }
 
 /**
- * Return last tempo (i.e. tempo with greatest time_pulses) that happens before "pulses".
+ * smf_file_get_tempo_by_pulses:
+ * @smf: the SMF
+ * @pulses: pulse at which to get the last tempo
+ *
+ * Returns: (transfer none): last tempo (i.e. tempo with greatest time_pulses) that happens before "pulses".
  */
 smf_tempo_t *
 smf_file_get_tempo_by_pulses(const smf_t *smf, int pulses)
@@ -305,7 +336,11 @@ smf_file_get_tempo_by_pulses(const smf_t *smf, int pulses)
 }
 
 /**
- * Return last tempo (i.e. tempo with greatest time_seconds) that happens before "seconds".
+ * smf_file_get_tempo_by_seconds:
+ * @smf: the SMF
+ * @seconds: seconds at which to get the last tempo
+ *
+ * Returns: (transfer none): last tempo (i.e. tempo with greatest time_seconds) that happens before "seconds".
  */
 smf_tempo_t *
 smf_file_get_tempo_by_seconds(const smf_t *smf, double seconds)
@@ -333,7 +368,10 @@ smf_file_get_tempo_by_seconds(const smf_t *smf, double seconds)
 
 
 /**
- * Return last tempo.
+ * smf_file_get_last_tempo:
+ * @smf: the SMF
+ *
+ * Returns: (transfer none): last tempo.
  */
 smf_tempo_t *
 smf_file_get_last_tempo(const smf_t *smf)
@@ -347,9 +385,12 @@ smf_file_get_last_tempo(const smf_t *smf)
 }
 
 /**
- * \internal 
+ * smf_file_fini_tempo: (skip)
+ * @smf: the SMF
  *
  * Remove all smf_tempo_t structures from SMF.
+ *
+ * Since: 1.4
  */
 void
 smf_file_fini_tempo(smf_t *smf)
@@ -358,11 +399,14 @@ smf_file_fini_tempo(smf_t *smf)
 }
 
 /**
- * \internal
+ * smf_file_init_tempo: (skip)
+ * @smf: the SMF
  *
  * Remove any existing tempos and add default one.
  *
- * \bug This will abort (by calling g_error) if new_tempo() (memory allocation there) fails.
+ * Bug: This will abort (by calling g_error) if new_tempo() (memory allocation there) fails.
+ *
+ * Since: 1.4
  */
 void
 smf_file_init_tempo(smf_t *smf)
@@ -376,8 +420,8 @@ smf_file_init_tempo(smf_t *smf)
 		g_error("tempo_init failed, sorry.");
 }
 
-/**
- * Returns ->time_pulses of last event on the given track, or 0, if track is empty.
+/*
+ * Returns: time_pulses of last event on the given track, or 0, if track is empty.
  */
 static int
 last_event_pulses(const smf_track_t *track)
@@ -395,6 +439,11 @@ last_event_pulses(const smf_track_t *track)
 }
 
 /**
+ * smf_track_add_event_delta_pulses:
+ * @track: the track
+ * @event: the event to add
+ * @delta: time from previous event in pulses
+ *
  * Adds event to the track at the time "pulses" clocks from the previous event in this track.
  * The remaining two time fields will be computed automatically based on the third argument
  * and current tempo map.  Note that ->delta_pulses is computed by smf.c:smf_track_add_event,
@@ -412,6 +461,11 @@ smf_track_add_event_delta_pulses(smf_track_t *track, smf_event_t *event, int del
 }
 
 /**
+ * smf_track_add_event_pulses:
+ * @track: the track
+ * @event: the event to add
+ * @pulses: time from start of song in pulses
+ *
  * Adds event to the track at the time "pulses" clocks from the start of song.
  * The remaining two time fields will be computed automatically based on the third argument
  * and current tempo map.
@@ -430,6 +484,11 @@ smf_track_add_event_pulses(smf_track_t *track, smf_event_t *event, int pulses)
 }
 
 /**
+ * smf_track_add_event_seconds:
+ * @track: the track
+ * @event: the event to add
+ * @seconds: time from start of song in seconds
+ *
  * Adds event to the track at the time "seconds" seconds from the start of song.
  * The remaining two time fields will be computed automatically based on the third argument
  * and current tempo map.

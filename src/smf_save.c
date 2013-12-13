@@ -26,9 +26,9 @@
  */
 
 /**
- * \file
- *
- * Standard MIDI File writer.
+ * SECTION:libsmf
+ * @title: smf_save
+ * @short_description: Standard MIDI File writer.
  *
  */
 
@@ -49,7 +49,7 @@
 
 #define MAX_VLQ_LENGTH 128
 
-/**
+/*
  * Extends (reallocates) smf->file_buffer and returns pointer to the newly added space,
  * that is, pointer to the first byte after the previous buffer end.  Returns NULL in case
  * of error.
@@ -80,7 +80,7 @@ smf_extend(smf_t *smf, const int length)
 	return ((char *)smf->file_buffer + previous_file_buffer_length);
 }
 
-/**
+/*
  * Appends "buffer_length" bytes pointed to by "buffer" to the smf, reallocating storage as needed.  Returns 0
  * if everything went ok, different value if there was any problem.
  */
@@ -100,7 +100,7 @@ smf_append(smf_t *smf, const void *buffer, const int buffer_length)
 	return (0);
 }
 
-/**
+/*
  * Appends MThd header to the track.  Returns 0 if everything went ok, different value if not.
  */
 static int
@@ -117,7 +117,7 @@ write_mthd_header(smf_t *smf)
 	return (smf_append(smf, &mthd_chunk, sizeof(mthd_chunk)));
 }
 
-/**
+/*
  * Extends (reallocates) track->file_buffer and returns pointer to the newly added space,
  * that is, pointer to the first byte after the previous buffer end.  Returns NULL in case
  * of error.
@@ -140,7 +140,7 @@ track_extend(smf_track_t *track, const int length)
 	return (buf);
 }
 
-/**
+/*
  * Appends "buffer_length" bytes pointed to by "buffer" to the track, reallocating storage as needed.  Returns 0
  * if everything went ok, different value if there was any problem.
  */
@@ -226,9 +226,9 @@ smf_event_new_textual(int type, const char *text)
 	return event;
 }
 
-/**
-  * Appends value, expressed as Variable Length Quantity, to event->track.
-  */
+/*
+ * Appends value, expressed as Variable Length Quantity, to event->track.
+ */
 static int
 write_vlq(smf_event_t *event, unsigned long value)
 {
@@ -240,7 +240,7 @@ write_vlq(smf_event_t *event, unsigned long value)
 	return (track_append(event->track, buf, vlq_length));
 }
 
-/**
+/*
  * Appends event time as Variable Length Quantity.  Returns 0 if everything went ok,
  * different value in case of error.
  */
@@ -276,9 +276,9 @@ write_sysex_contents(smf_event_t *event)
 	return (0);
 }
 
-/**
-  * Appends contents of event->midi_buffer wrapped into 0xF7 MIDI event.
-  */
+/*
+ * Appends contents of event->midi_buffer wrapped into 0xF7 MIDI event.
+ */
 static int
 write_escaped_event_contents(smf_event_t *event)
 {
@@ -303,7 +303,7 @@ write_escaped_event_contents(smf_event_t *event)
 	return (0);
 }
 
-/**
+/*
  * Appends contents of event->midi_buffer.  Returns 0 if everything went 0,
  * different value in case of error.
  */
@@ -316,7 +316,7 @@ write_event_contents(smf_event_t *event)
 	return (track_append(event->track, event->midi_buffer, event->midi_buffer_length));
 }
 
-/**
+/*
  * Writes out an event.
  */
 static int
@@ -335,7 +335,7 @@ write_event(smf_event_t *event)
 	return (0);
 }
 
-/**
+/*
  * Writes out MTrk header, except of MTrk chunk length, which is written by write_mtrk_length().
  */
 static int
@@ -348,7 +348,7 @@ write_mtrk_header(smf_track_t *track)
 	return (track_append(track, &mtrk_header, sizeof(mtrk_header)));
 }
 
-/**
+/*
  * Updates MTrk chunk length of a given track.
  */
 static int
@@ -365,7 +365,7 @@ write_mtrk_length(smf_track_t *track)
 	return (0);
 }
 
-/**
+/*
  * Writes out the track.
  */
 static int
@@ -391,7 +391,7 @@ write_track(smf_track_t *track)
 	return (0);
 }
 
-/**
+/*
  * Takes smf->file_buffer and saves it to the file.
  */
 static int
@@ -443,8 +443,8 @@ free_buffer(smf_t *smf)
 
 #ifndef NDEBUG
 
-/**
- * \return Nonzero, if all pointers supposed to be NULL are NULL.  Triggers assertion if not.
+/*
+ * Returns: Nonzero, if all pointers supposed to be NULL are NULL.  Triggers assertion if not.
  */
 static int
 pointers_are_clear(smf_t *smf)
@@ -469,7 +469,10 @@ pointers_are_clear(smf_t *smf)
 #endif /* !NDEBUG */
 
 /**
- * \return Nonzero, if event is End Of Track metaevent.
+ * smf_event_is_eot:
+ * @event: the event to test
+ *
+ * Returns: Nonzero, if event is End Of Track metaevent.
  */
 int
 smf_event_is_eot(const smf_event_t *event)
@@ -483,10 +486,10 @@ smf_event_is_eot(const smf_event_t *event)
 	return (1);
 }
 
-/**
+/*
  * Check if SMF is valid and add missing EOT events.
  *
- * \return 0, if SMF is valid.
+ * Returns: 0, if SMF is valid.
  */
 static int
 smf_validate(smf_t *smf)
@@ -611,11 +614,16 @@ assert_smf_saved_correctly(const smf_t *smf, const char *file_name)
 #endif /* !NDEBUG */
 
 /**
-  * Writes the contents of SMF to the file given.
-  * \param smf SMF.
-  * \param file_name Path to the file.
-  * \return 0, if saving was successfull.
-  */
+ * smf_file_save:
+ * @smf: SMF.
+ * @file_name: Path to the file.
+ *
+ * Writes the contents of SMF to the file given.
+ *
+ * Returns: 0, if saving was successfull.
+ *
+ * Since: 1.4
+ */
 int
 smf_file_save(smf_t *smf, const char *file_name)
 {

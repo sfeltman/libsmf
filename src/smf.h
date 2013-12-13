@@ -26,109 +26,99 @@
  */
 
 /**
- * \file
+ * SECTION:smf
+ * @title: smf - libsmf developer documentation
+ * @short_description: Public interface declaration for libsmf, Standard MIDI File format library.
+ * @include: smf.h
  *
- * Public interface declaration for libsmf, Standard MIDI File format library.
- */
-
-/**
- *
- * \mainpage libsmf - general usage instructions
- *
- * An smf_t structure represents a "song".  Every valid smf contains one or more tracks.
+ * An #SmfFile structure represents a "song".  Every valid #SmfFile contains one or more tracks.
  * Tracks contain zero or more events.  Libsmf doesn't care about actual MIDI data, as long
  * as it is valid from the MIDI specification point of view - it may be realtime message,
  * SysEx, whatever.
- * 
- * The only field in smf_t, smf_track_t, smf_event_t and smf_tempo_t structures your
- * code may modify is event->midi_buffer and event->midi_buffer_length.  Do not modify
+ *
+ * The only field in #SmfFile, #SmfTrack, #SmfEvent and #SmfTempo structures your
+ * code may modify is #SmfEvent.midi_buffer and #SmfEvent.midi_buffer_length.  Do not modify
  * other fields, _ever_.  You may read them, though.  Do not declare static instances
- * of these types, i.e. never do something like this:  "smf_t smf;".  Always use
- * "smf_t *smf = smf_new();".  The same applies to smf_track_t and smf_event_t.
- * 
+ * of these types, i.e. never do something like this:  "SmfFile smf;".  Always use
+ * "SmfFile *smf = smf_file_new();".  The same applies to #SmfTrack and #SmfEvent.
+ *
  * Say you want to load a Standard MIDI File (.mid) file and play it back somehow.  This is (roughly)
  * how you do this:
- * 
- * \code
- * 	smf_t *smf;
- * 	smf_event_t *event;
+ * |[
+ * SmfFile *smf;
+ * SmfEvent *event;
  *
- * 	smf = smf_load(file_name);
- * 	if (smf == NULL) {
- * 		Whoops, something went wrong.
- * 		return;
- * 	}
- * 
- * 	while ((event = smf_get_next_event(smf)) != NULL) {
- *		if (smf_event_is_metadata(event))
- *			continue;
- * 
- * 		wait until event->time_seconds.
- * 		feed_to_midi_output(event->midi_buffer, event->midi_buffer_length);
- * 	}
+ * smf = smf_file_load(file_name);
+ * if (smf == NULL) {
+ * 	Whoops, something went wrong.
+ * 	return;
+ * }
  *
- *	smf_delete(smf);
+ * while ((event = smf_get_next_event(smf)) != NULL) {
+ * 	if (smf_event_is_metadata(event))
+ * 		continue;
  *
- * \endcode
- * 
+ * 	wait until event->time_seconds.
+ * 	feed_to_midi_output(event->midi_buffer, event->midi_buffer_length);
+ * }
+ *
+ * smf_file_unref(smf);
+ * ]|
+ *
  * Saving works like this:
- * 
- * \code
  *
- * 	smf_t *smf;
- *	smf_track_t *track;
- *	smf_event_t *event;
+ * |[
+ * SmfFile *smf;
+ * SmfTrack *track;
+ * SmfEvent *event;
  *
- * 	smf = smf_new();
- * 	if (smf == NULL) {
+ * smf = smf_file_new();
+ * if (smf == NULL) {
+ * 	Whoops.
+ * 	return;
+ * }
+ *
+ * for (int i = 1; i <= number of tracks; i++) {
+ * 	track = smf_track_new();
+ * 	if (track == NULL) {
  * 		Whoops.
  * 		return;
  * 	}
- * 
- * 	for (int i = 1; i <= number of tracks; i++) {
- * 		track = smf_track_new();
- * 		if (track == NULL) {
+ *
+ * 	smf_file_add_track(smf, track);
+ *
+ * 	for (int j = 1; j <= number of events you want to put into this track; j++) {
+ * 		event = smf_event_new_from_pointer(your MIDI message, message length);
+ * 		if (event == NULL) {
  * 			Whoops.
  * 			return;
  * 		}
- * 
- * 		smf_add_track(smf, track);
- * 
- * 		for (int j = 1; j <= number of events you want to put into this track; j++) {
- * 			event = smf_event_new_from_pointer(your MIDI message, message length);
- * 			if (event == NULL) {
- * 				Whoops.
- * 				return;
- * 			}
- * 
- * 			smf_track_add_event_seconds(track, event, seconds since start of the song);
- * 		}
- * 	}
- * 
- * 	ret = smf_save(smf, file_name);
- * 	if (ret) {
- * 		Whoops, saving failed for some reason.
- * 		return;
- * 	}
  *
- *	smf_delete(smf);
+ * 		smf_track_add_event_seconds(track, event, seconds since start of the song);
+ * 	}
+ * }
  *
- * \endcode
+ * ret = smf_file_save(smf, file_name);
+ * if (ret) {
+ * 	Whoops, saving failed for some reason.
+ * 	return;
+ * }
+ *
+ * smf_file_unref(smf);
+ * ]|
  *
  * There are two basic ways of getting MIDI data out of smf - sequential or by track/event number.  You may
  * mix them if you need to.  First one is used in the example above - seek to the point from which you want
- * the playback to start (using smf_seek_to_seconds(), smf_seek_to_pulses() or smf_seek_to_event()) and then
- * do smf_get_next_event() in loop, until it returns NULL.  Calling smf_load() causes the smf to be rewound
+ * the playback to start (using smf_file_seek_to_seconds(), smf_file_seek_to_pulses() or smf_file_seek_to_event()) and then
+ * do smf_file_get_next_event() in loop, until it returns %NULL.  Calling smf_file_load() causes the smf to be rewound
  * to the start of the song.
  *
  * Getting events by number works like this:
  *
- * \code
- *
- * smf_track_t *track = smf_get_track_by_number(smf, track_number);
- * smf_event_t *event = smf_track_get_event_by_number(track, event_number);
- *
- * \endcode
+ * |[
+ * SmfTrack *track = smf_file_get_track_by_number(smf, track_number);
+ * SmfEvent *event = smf_file_track_get_event_by_number(track, event_number);
+ * ]|
  *
  * To create new event, use smf_event_new(), smf_event_new_from_pointer() or smf_event_new_from_bytes().
  * First one creates an empty event - you need to manually allocate (using malloc(3)) buffer for
@@ -153,11 +143,11 @@
  * last one, you specify it as seconds from the start of the song.  Obviously, the first version can
  * only append events at the end of the track.
  *
- * To remove an event from the track it's attached to, use smf_event_remove_from_track().  You may
+ * To remove an event from the track it's attached to, use smf_track_remove_event().  You may
  * want to free the event (using smf_event_delete()) afterwards.
  *
- * To create new track, use smf_track_new().  To add track to the smf, use smf_add_track().
- * To remove track from its smf, use smf_track_remove_from_smf().  To free the track structure,
+ * To create new track, use smf_track_new().  To add track to the smf, use smf_file_add_track().
+ * To remove track from its smf, use smf_file_remove_track().  To free the track structure,
  * use smf_track_delete().
  *
  * Note that libsmf keeps things consistent.  If you free (using smf_track_delete()) a track that
@@ -165,18 +155,18 @@
  * the track, free it etc.
  *
  * Tracks and events are numbered consecutively, starting from one.  If you remove a track or event,
- * the rest of tracks/events will get renumbered.  To get the number of a given event in its track, use event->event_number.
- * To get the number of track in its smf, use track->track_number.  To get the number of events in the track,
- * use track->number_of_events.  To get the number of tracks in the smf, use smf->number_of_tracks.
+ * the rest of tracks/events will get renumbered.  To get the number of a given event in its track, use #SmfEvent.event_number.
+ * To get the number of track in its smf, use #SmfTrack.track_number.  To get the number of events in the track,
+ * use #SmfTrack.number_of_events.  To get the number of tracks in the smf, use #SmfFile.number_of_tracks.
  *
- * In SMF File Format, each track has to end with End Of Track metaevent.  If you load SMF file using smf_load(),
+ * In SMF File Format, each track has to end with End Of Track metaevent.  If you load SMF file using smf_file_load(),
  * that will be the case.  If you want to create or edit an SMF, you don't need to worry about EOT events;
  * libsmf automatically takes care of them for you.  If you try to save an SMF with tracks that do not end
- * with EOTs, smf_save() will append them.  If you try to add event that happens after EOT metaevent, libsmf
+ * with EOTs, smf_file_save() will append them.  If you try to add event that happens after EOT metaevent, libsmf
  * will remove the EOT.  If you want to add EOT manually, you can, of course, using smf_track_add_eot_seconds()
  * or smf_track_add_eot_pulses().
  *
- * Each event carries three time values - event->time_seconds, which is seconds since the start of the song,
+ * Each event carries three time values - #SmfEvent.time_seconds, which is seconds since the start of the song,
  * event->time_pulses, which is PPQN clocks since the start of the song, and event->delta_pulses, which is PPQN clocks
  * since the previous event in that track.  These values are invalid if the event is not attached to the track.
  * If event is attached, all three values are valid.  Time of the event is specified when adding the event
@@ -186,10 +176,10 @@
  * Tempo related stuff happens automatically - when you add a metaevent that
  * is Tempo Change or Time Signature, libsmf adds that event to the tempo map.  If you remove
  * Tempo Change event that is in the middle of the song, the rest of the events will have their
- * event->time_seconds recomputed from event->time_pulses before smf_event_remove_from_track() function returns.
+ * #SmfEvent.time_seconds recomputed from #SmfEvent.time_pulses before smf_track_remove_event() function returns.
  * Adding Tempo Change in the middle of the song works in a similar way.
- * 	
- * MIDI data (event->midi_buffer) is always kept in normalized form - it always begins with status byte
+ *
+ * MIDI data (#SmfEvent.midi_buffer) is always kept in normalized form - it always begins with status byte
  * (no running status), there are no System Realtime events embedded in them etc.  Events like SysExes
  * are in "on the wire" form, without embedded length that is used in SMF file format.  Obviously
  * libsmf "normalizes" MIDI data during loading and "denormalizes" (adding length to SysExes, escaping
@@ -200,10 +190,10 @@
  * them from the end of the track, that's much more efficient.
  * 
  * All the libsmf functions have prefix "smf_".  First argument for routines whose names start with
- * "smf_event_" is "smf_event_t *", for routines whose names start with "smf_track_" - "smf_track_t *",
- * and for plain "smf_" - "smf_t *".  The only exception are smf_whatever_new routines.
+ * "smf_event_" is "SmfEvent *", for routines whose names start with "smf_track_" - "SmfTrack *",
+ * and for plain "smf_file_" - "SmfFile *".  The only exception are smf_whatever_new routines.
  * Library does not use any global variables and is thread-safe,
- * as long as you don't try to work on the same SMF (smf_t and its descendant tracks and events) from several
+ * as long as you don't try to work on the same SMF (SmfFile and its descendant tracks and events) from several
  * threads at once without protecting it with mutex.  Library depends on glib and nothing else.  License is
  * BSD, two clause, which basically means you can use it freely in your software, both Open Source (including
  * GPL) and closed source.
@@ -227,29 +217,35 @@ typedef struct _SmfTrack SmfTrack;
 typedef struct _SmfEvent SmfEvent;
 
 
-/** Represents a "song", that is, collection of one or more tracks. */
+/**
+ * SmfFile:
+ * @tracks_array: (element-type Smf.Track):
+ * @tempo_array: (element-type Smf.Tempo):
+ * Represents a "song", that is, collection of one or more tracks.
+ */
 struct _SmfFile {
 	int		format;
 
-	/** These fields are extracted from "division" field of MThd header.  Valid is _either_ ppqn or frames_per_second/resolution. */
+	/* These fields are extracted from "division" field of MThd header.  Valid is _either_ ppqn or frames_per_second/resolution. */
 	int		ppqn;
 	int		frames_per_second;
 	int		resolution;
 	int		number_of_tracks;
 
-	/** These are private fields using only by loading and saving routines. */
+	/*< private >*/
+	/* These are private fields using only by loading and saving routines. */
 	FILE		*stream;
 	void		*file_buffer;
 	int		file_buffer_length;
 	int		next_chunk_offset;
 	int		expected_number_of_tracks;
 
-	/** Private, used by smf.c. */
+	/*< private >*/
 	GPtrArray	*tracks_array;
 	double		last_seek_position;
 
-	/** Private, used by smf_tempo.c. */
-	/** Array of pointers to smf_tempo_struct. */
+	/*< private >*/
+	/* Array of pointers to smf_tempo_struct. */
 	GPtrArray	*tempo_array;
 	int		ref_count;
 };
@@ -294,33 +290,40 @@ SmfTempo *smf_file_get_tempo_by_seconds(const SmfFile *smf, double seconds) G_GN
 SmfTempo *smf_file_get_tempo_by_number(const SmfFile *smf, int number) G_GNUC_WARN_UNUSED_RESULT;
 SmfTempo *smf_file_get_last_tempo(const SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
 
-/** Represents a single track. */
+
+/**
+ * SmfTrack:
+ * @events_array: (element-type Smf.Event):
+ * Represents a single track.
+ */
 struct _SmfTrack {
 	SmfFile		*smf;
 
 	int		track_number;
 	int		number_of_events;
 
-	/** These are private fields using only by loading and saving routines. */
+	/*< private >*/
+	/* These are private fields using only by loading and saving routines. */
 	void		*file_buffer;
 	int		file_buffer_length;
 	int		last_status; /* Used for "running status". */
 
-	/** Private, used by smf.c. */
-	/** Offset into buffer, used in parse_next_event(). */
+	/*< private >*/
+	/* Offset into buffer, used in parse_next_event(). */
 	int		next_event_offset;
 	int		next_event_number;
 
-	/** Absolute time of next event on events_queue. */
+	/* Absolute time of next event on events_queue. */
 	int		time_of_next_event;
 	GPtrArray	*events_array;
 
-	/** API consumer is free to use this for whatever purpose.  NULL in freshly allocated track.
-	    Note that tracks might be deallocated not only explicitly, by calling smf_track_delete(),
-	    but also implicitly, e.g. when calling smf_delete() with tracks still added to
-	    the smf; there is no mechanism for libsmf to notify you about removal of the track. */
+	/* API consumer is free to use this for whatever purpose.  %NULL in freshly allocated track.
+	   Note that tracks might be deallocated not only explicitly, by calling smf_track_delete(),
+	   but also implicitly, e.g. when calling smf_delete() with tracks still added to
+	   the smf; there is no mechanism for libsmf to notify you about removal of the track. */
 	void		*user_pointer;
 
+	/*< private >*/
 	int		ref_count;
 };
 
@@ -342,38 +345,39 @@ int smf_track_add_eot_pulses(SmfTrack *track, int pulses) G_GNUC_WARN_UNUSED_RES
 int smf_track_add_eot_seconds(SmfTrack *track, double seconds) G_GNUC_WARN_UNUSED_RESULT;
 void smf_track_remove_event(SmfTrack *track, SmfEvent *event);
 
-/** Represents a single MIDI event or metaevent. */
+
+/**
+ * SmfEvent:
+ * @track: Pointer to the track, or %NULL if event is not attached.
+ * @event_number: Number of this event in the track.  Events are numbered
+ *   consecutively, starting from one.
+ * @delta_time_pulses: Time, in pulses, since the previous event on this track.
+ * @time_pulses: Time, in pulses, since the start of the song.
+ * @time_seconds: Time, in seconds, since the start of the song.
+ * @track_number: Tracks are numbered consecutively, starting from 1.
+ * @midi_buffer: (array length=midi_buffer_length) (element-type guint8):
+ *   Pointer to the buffer containing MIDI message. This is freed by
+ *   smf_event_delete.
+ * @midi_buffer_length: Length of the MIDI message in the buffer, in bytes.
+ * @user_pointer: API consumer is free to use this for whatever purpose.
+ *   %NULL in freshly allocated event.
+ *   Note that events might be deallocated not only explicitly, by calling smf_event_delete(),
+ *   but also implicitly, e.g. when calling smf_track_delete() with events still added to
+ *   the track; there is no mechanism for libsmf to notify you about removal of the event.
+ *
+ * Represents a single MIDI event or metaevent.
+ */
 struct _SmfEvent {
-	/** Pointer to the track, or NULL if event is not attached. */
 	SmfTrack	*track;
-
-	/** Number of this event in the track.  Events are numbered consecutively, starting from one. */
 	int		event_number;
-
-	/** Note that the time fields are invalid, if event is not attached to a track. */
-	/** Time, in pulses, since the previous event on this track. */
 	int		delta_time_pulses;
-
-	/** Time, in pulses, since the start of the song. */
 	int		time_pulses;
-
-	/** Time, in seconds, since the start of the song. */
 	double		time_seconds;
-
-	/** Tracks are numbered consecutively, starting from 1. */
 	int		track_number;
-
-	/** Pointer to the buffer containing MIDI message.  This is freed by smf_event_delete. */
 	unsigned char	*midi_buffer;
-
-	/** Length of the MIDI message in the buffer, in bytes. */
-	int		midi_buffer_length; 
-
-	/** API consumer is free to use this for whatever purpose.  NULL in freshly allocated event.
-	    Note that events might be deallocated not only explicitly, by calling smf_event_delete(),
-	    but also implicitly, e.g. when calling smf_track_delete() with events still added to
-	    the track; there is no mechanism for libsmf to notify you about removal of the event. */
+	int		midi_buffer_length;
 	void		*user_pointer;
+	/*< private >*/
 	int		ref_count;
 };
 
@@ -399,7 +403,11 @@ char *smf_event_decode(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
 char *smf_event_extract_text(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
 
 
-/** Describes a single tempo or time signature change. */
+/**
+ * SmfTempo:
+ *
+ * Describes a single tempo or time signature change.
+ */
 struct _SmfTempo {
 	int time_pulses;
 	double time_seconds;
@@ -408,6 +416,7 @@ struct _SmfTempo {
 	int denominator;
 	int clocks_per_click;
 	int notes_per_note;
+	/*< private >*/
 	int ref_count;
 };
 
@@ -423,6 +432,8 @@ typedef SmfFile   		smf_t;
 typedef SmfTempo  		smf_tempo_t;
 typedef SmfTrack  		smf_track_t;
 typedef SmfEvent  		smf_event_t;
+
+#ifndef __GI_SCANNER__
 
 G_DEPRECATED_FOR(smf_file_new)
 smf_t *smf_new(void) G_GNUC_WARN_UNUSED_RESULT;
@@ -493,6 +504,7 @@ smf_tempo_t *smf_get_tempo_by_number(const smf_t *smf, int number) G_GNUC_WARN_U
 G_DEPRECATED_FOR(smf_file_get_last_tempo)
 smf_tempo_t *smf_get_last_tempo(const smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
 
+#endif /*__GI_SCANNER__*/
 #ifdef __cplusplus
 }
 #endif

@@ -35,7 +35,7 @@
 
 #define SMF_VERSION PACKAGE_VERSION
 
-/**
+/*
  * \file
  *
  * Private header.  Applications using libsmf should use smf.h.

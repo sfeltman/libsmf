@@ -25,7 +25,7 @@
  *
  */
 
-/**
+/*
  * \file
  *
  * Various functions.
@@ -48,8 +48,13 @@
 #include "smf_private.h"
 
 /**
- * Allocates new smf_t structure.
- * \return pointer to smf_t or NULL.
+ * smf_file_new:
+ *
+ * Allocates new SmfFile structure.
+ *
+ * Returns: pointer to SmfFile or %NULL.
+ *
+ * Since: 1.4
  */
 SmfFile *
 smf_file_new(void)
@@ -85,7 +90,11 @@ smf_file_new(void)
 }
 
 /**
- * Frees smf and all it's descendant structures.
+ * smf_file_delete:
+ * @smf: (transfer full): the SMF to delete
+ *
+ * Unrefs @smf and all it's descendant structures. This is an alias for
+ * smf_file_unref()
  */
 void
 smf_file_delete(SmfFile *smf)
@@ -93,6 +102,16 @@ smf_file_delete(SmfFile *smf)
 	smf_file_unref(smf);
 }
 
+/**
+ * smf_file_ref:
+ * @smf: the SMF
+ *
+ * Add a reference to @smf.
+ *
+ * Returns: (transfer full): A new reference to @smf
+ *
+ * Since: 1.4
+ */
 SmfFile *
 smf_file_ref(SmfFile *smf)
 {
@@ -101,6 +120,14 @@ smf_file_ref(SmfFile *smf)
 	return smf;
 }
 
+/**
+ * smf_file_unref:
+ * @smf: (transfer full): the SMF to unref
+ *
+ * Unrefs @smf and all it's descendant structures.
+ *
+ * Since: 1.4
+ */
 void
 smf_file_unref(SmfFile *smf)
 {
@@ -114,8 +141,11 @@ smf_file_unref(SmfFile *smf)
 }
 
 /**
- * Allocates new smf_track_t structure.
- * \return pointer to smf_track_t or NULL.
+ * smf_track_new:
+ *
+ * Allocates new SmfTrack structure.
+ *
+ * Returns: (transfer full): A pointer to SmfTrack or %NULL on error.
  */
 SmfTrack *
 smf_track_new(void)
@@ -138,7 +168,10 @@ smf_track_new(void)
 }
 
 /**
- * Detaches track from its smf and frees it.
+ * smf_track_delete:
+ * @track: (transfer full): the track to delete
+ *
+ * Detaches track from its song and unrefs it.
  */
 void
 smf_track_delete(SmfTrack *track)
@@ -152,6 +185,16 @@ smf_track_delete(SmfTrack *track)
 	}
 }
 
+/**
+ * smf_track_ref:
+ * @track: the track to ref
+ *
+ * Add a reference to @track.
+ *
+ * Returns: (transfer full): A new reference to @track
+ *
+ * Since: 1.4
+ */
 SmfTrack *
 smf_track_ref(SmfTrack *track)
 {
@@ -160,6 +203,14 @@ smf_track_ref(SmfTrack *track)
     return track;
 }
 
+/**
+ * smf_track_unref:
+ * @track: (transfer full): the track to unref
+ *
+ * Unref the track and free its memory if this is the last reference.
+ *
+ * Since: 1.4
+ */
 void
 smf_track_unref(smf_track_t *track)
 {
@@ -175,7 +226,11 @@ smf_track_unref(smf_track_t *track)
 
 
 /**
- * Appends smf_track_t to smf.
+ * smf_file_add_track:
+ * @smf: the smf to add @track to
+ * @track: (transfer full): track to be added to @smf
+ *
+ * Appends @track to @smf.
  */
 void
 smf_file_add_track(SmfFile *smf, SmfTrack *track)
@@ -198,7 +253,13 @@ smf_file_add_track(SmfFile *smf, SmfTrack *track)
 }
 
 /**
- * Detaches track from the smf.
+ * smf_file_remove_track:
+ * @smf: song to remove track from
+ * @track: (transfer none): track to remove
+ *
+ * Detaches @track from @song.
+ *
+ * Since: 1.4
  */
 void
 smf_file_remove_track(smf_t *smf, smf_track_t *track)
@@ -237,6 +298,12 @@ smf_file_remove_track(smf_t *smf, smf_track_t *track)
 	track->smf = NULL;
 }
 
+/**
+ * smf_track_remove_from_smf:
+ * @track: track to remove from its smf
+ *
+ * Detaches @track from its smf
+ */
 void
 smf_track_remove_from_smf(smf_track_t *track)
 {
@@ -246,10 +313,13 @@ smf_track_remove_from_smf(smf_track_t *track)
 
 
 /**
- * Allocates new smf_event_t structure.  The caller is responsible for allocating
+ * smf_event_new:
+ *
+ * Allocates new SmfEvent structure.  The caller is responsible for allocating
  * event->midi_buffer, filling it with MIDI data and setting event->midi_buffer_length properly.
  * Note that event->midi_buffer will be freed by smf_event_delete.
- * \return pointer to smf_event_t or NULL.
+ *
+ * Returns: A pointer to SmfEvent or %NULL.
  */
 SmfEvent *
 smf_event_new(void)
@@ -272,11 +342,15 @@ smf_event_new(void)
 }
 
 /**
- * Allocates an smf_event_t structure and fills it with "len" bytes copied
- * from "midi_data".
- * \param midi_data Pointer to MIDI data.  It sill be copied to the newly allocated event->midi_buffer.
- * \param len Length of the buffer.  It must be proper MIDI event length, e.g. 3 for Note On event.
- * \return Event containing MIDI data or NULL.
+ * smf_event_new_from_pointer:
+ * @midi_data: (array length=len) (element-type guint8) (transfer none):
+ *    Pointer to MIDI data. It shall be copied to the newly allocated event->midi_buffer.
+ * @len: Length of the buffer. It must be proper MIDI event length, e.g. 3 for Note On event.
+ *
+ * Allocates an SmfEvent structure and fills it with @len bytes copied
+ * from @midi_data.
+ *
+ * Returns: Event containing MIDI data or %NULL on error.
  */
 SmfEvent *
 smf_event_new_from_pointer(void *midi_data, int len)
@@ -302,20 +376,26 @@ smf_event_new_from_pointer(void *midi_data, int len)
 }
 
 /**
- * Allocates an smf_event_t structure and fills it with at most three bytes of data.
+ * smf_event_new_from_bytes:
+ * @first_byte: First byte of MIDI message. Must be valid status byte.
+ * @second_byte: Second byte of MIDI message or -1, if message is one byte long.
+ * @third_byte: Third byte of MIDI message or -1, if message is two bytes long.
+ *
+ * Allocates an SmfEvent structure and fills it with at most three bytes of data.
  * For example, if you need to create Note On event, do something like this:
  *
+ * |[
  * smf_event_new_from_bytes(0x90, 0x3C, 0x7f);
+ * ]|
  *
  * To create event for MIDI message that is shorter than three bytes, do something
  * like this:
  *
+ * |[
  * smf_event_new_from_bytes(0xC0, 0x42, -1);
- * 
- * \param first_byte First byte of MIDI message.  Must be valid status byte.
- * \param second_byte Second byte of MIDI message or -1, if message is one byte long.
- * \param third_byte Third byte of MIDI message or -1, if message is two bytes long.
- * \return Event containing MIDI data or NULL.
+ * ]|
+ *
+ * Returns: Event containing MIDI data or %NULL on error.
  */
 SmfEvent *
 smf_event_new_from_bytes(int first_byte, int second_byte, int third_byte)
@@ -396,7 +476,10 @@ smf_event_new_from_bytes(int first_byte, int second_byte, int third_byte)
 }
 
 /**
- * Detaches event from its track and frees it.
+ * smf_event_delete:
+ * @event: (transfer full): the event to delete
+ *
+ * Remove the event from its track and unref it.
  */
 void
 smf_event_delete(SmfEvent *event)
@@ -409,6 +492,16 @@ smf_event_delete(SmfEvent *event)
 	}
 }
 
+/**
+ * smf_event_ref:
+ * @event: the event to ref
+ *
+ * Add a reference to @event.
+ *
+ * Returns: (transfer full): A new reference to @event
+ *
+ * Since: 1.4
+ */
 SmfEvent *
 smf_event_ref(SmfEvent *event)
 {
@@ -417,6 +510,14 @@ smf_event_ref(SmfEvent *event)
     return event;
 }
 
+/**
+ * smf_event_unref:
+ * @event: (transfer full): the event to unref
+ *
+ * Unref the event and free its memory if this is the last reference.
+ *
+ * Since: 1.4
+ */
 void
 smf_event_unref(SmfEvent *event)
 {
@@ -434,6 +535,25 @@ smf_event_unref(SmfEvent *event)
 }
 
 /**
+ * smf_event_get_buffer:
+ * @event: the event
+ * @length: (out): buffer length
+ *
+ * Retrieve the buffer for @event
+ *
+ * Returns: (array length=length) (transfer none) (element-type guchar):
+ *   The midi buffer for this event.
+ *
+ * Since: 1.4
+ */
+unsigned char *
+smf_event_get_buffer(SmfEvent *event, int *length)
+{
+    *length = event->midi_buffer_length;
+    return event->midi_buffer;
+}
+
+/*
  * Used for sorting track->events_array.
  */
 static gint
@@ -490,6 +610,10 @@ remove_eot_if_before_pulses(SmfTrack *track, int pulses)
 }
 
 /**
+ * smf_track_add_event:
+ * @track: The track
+ * @event: event to add to the track
+ *
  * Adds the event to the track and computes ->delta_pulses.  Note that it is faster
  * to append events to the end of the track than to insert them in the middle.
  * Usually you want to use smf_track_add_event_seconds or smf_track_add_event_pulses
@@ -571,13 +695,17 @@ smf_track_add_event(SmfTrack *track, SmfEvent *event)
 }
 
 /**
+ * smf_track_add_eot_delta_pulses:
+ * @track: the track
+ * @delta: delta
+ *
  * Add End Of Track metaevent.  Using it is optional, libsmf will automatically
- * add EOT to the tracks during smf_save, with delta_pulses 0.  If you try to add EOT
+ * add EOT to the tracks during smf_file_save(), with delta_pulses 0.  If you try to add EOT
  * in the middle of the track, it will fail and nonzero value will be returned.
  * If you try to add EOT after another EOT event, it will be added, but the existing
  * EOT event will be removed.
  *
- * \return 0 if everything went ok, nonzero otherwise.
+ * Returns: 0 if everything went ok, nonzero otherwise.
  */
 int
 smf_track_add_eot_delta_pulses(SmfTrack *track, int delta)
@@ -593,6 +721,13 @@ smf_track_add_eot_delta_pulses(SmfTrack *track, int delta)
 	return (0);
 }
 
+/**
+ * smf_track_add_eot_pulses:
+ * @track: the track
+ * @pulses: pulses
+ *
+ * Returns: 0 if everything went ok, nonzero otherwise.
+ */
 int
 smf_track_add_eot_pulses(SmfTrack *track, int pulses)
 {
@@ -613,6 +748,13 @@ smf_track_add_eot_pulses(SmfTrack *track, int pulses)
 	return (0);
 }
 
+/**
+ * smf_track_add_eot_seconds:
+ * @track: the track
+ * @seconds: seconds
+ *
+ * Returns: 0 if everything went ok, nonzero otherwise.
+ */
 int
 smf_track_add_eot_seconds(SmfTrack *track, double seconds)
 {
@@ -634,7 +776,13 @@ smf_track_add_eot_seconds(SmfTrack *track, double seconds)
 }
 
 /**
- * Detaches event from its track.
+ * smf_track_remove_event:
+ * @track: track to remove @event from
+ * @event: the event to remove
+ *
+ * Detaches @event from @track
+ *
+ * Since: 1.4
  */
 void
 smf_track_remove_event(smf_track_t *track, smf_event_t *event)
@@ -689,8 +837,11 @@ smf_event_remove_from_track(smf_event_t *event)
 }
 
 /**
-  * \return Nonzero if event is Tempo Change or Time Signature metaevent.
-  */
+ * smf_event_is_tempo_change_or_time_signature:
+ * @event: the event to test
+ *
+ * Returns: Nonzero if event is Tempo Change or Time Signature metaevent.
+ */
 int
 smf_event_is_tempo_change_or_time_signature(const SmfEvent *event)
 {
@@ -706,13 +857,16 @@ smf_event_is_tempo_change_or_time_signature(const SmfEvent *event)
 }
 
 /**
-  * Sets "Format" field of MThd header to the specified value.  Note that you
-  * don't really need to use this, as libsmf will automatically change format
-  * from 0 to 1 when you add the second track.
-  * \param smf SMF.
-  * \param format 0 for one track per file, 1 for several tracks per file.
-  * \return 0 if everything went ok, nonzero otherwise.
-  */
+ * smf_file_set_format:
+ * @smf: the SMF
+ * @format: Use 0 for one track per file, 1 for several tracks per file.
+ *
+ * Sets "Format" field of MThd header to the specified value.  Note that you
+ * don't really need to use this, as libsmf will automatically change format
+ * from 0 to 1 when you add the second track.
+ *
+ * Returns: 0 if everything went ok, nonzero otherwise.
+ */
 int
 smf_file_set_format(SmfFile *smf, int format)
 {
@@ -729,13 +883,16 @@ smf_file_set_format(SmfFile *smf, int format)
 }
 
 /**
-  * Sets the PPQN ("Division") field of MThd header.  This is mandatory, you
-  * should call it right after smf_new.  Note that changing PPQN will change time_seconds
-  * of all the events.
-  * \param smf SMF.
-  * \param ppqn New PPQN.
-  * \return 0 if everything went ok, nonzero otherwise.
-  */
+ * smf_file_set_ppqn:
+ * @smf: the SMF
+ * @ppqn: New PPQN
+ *
+ * Sets the PPQN ("Division") field of MThd header.  This is mandatory, you
+ * should call it right after smf_new.  Note that changing PPQN will change time_seconds
+ * of all the events.
+ *
+ * Returns: 0 if everything went ok, nonzero otherwise.
+ */
 int
 smf_file_set_ppqn(SmfFile *smf, int ppqn)
 {
@@ -747,13 +904,16 @@ smf_file_set_ppqn(SmfFile *smf, int ppqn)
 }
 
 /**
-  * Returns next event from the track given and advances next event counter.
-  * Do not depend on End Of Track event being the last event on the track - it
-  * is possible that the track will not end with EOT if you haven't added it
-  * yet.  EOTs are added automatically during smf_save().
-  *
-  * \return Event or NULL, if there are no more events left in this track.
-  */
+ * smf_track_get_next_event:
+ * @track: the track
+ *
+ * Returns next event from the track given and advances next event counter.
+ * Do not depend on End Of Track event being the last event on the track - it
+ * is possible that the track will not end with EOT if you haven't added it
+ * yet.  EOTs are added automatically during smf_file_save().
+ *
+ * Returns: #SmfEvent or %NULL, if there are no more events left in this track.
+ */
 SmfEvent *
 smf_track_get_next_event(SmfTrack *track)
 {
@@ -785,10 +945,14 @@ smf_track_get_next_event(SmfTrack *track)
 }
 
 /**
-  * Returns next event from the track given.  Does not change next event counter,
-  * so repeatedly calling this routine will return the same event.
-  * \return Event or NULL, if there are no more events left in this track.
-  */
+ * smf_track_peek_next_event:
+ * @track: the track
+ *
+ * Returns next event from the track given.  Does not change next event counter,
+ * so repeatedly calling this routine will return the same event.
+ *
+ * Returns: #SmfEvent or %NULL, if there are no more events left in this track.
+ */
 static SmfEvent *
 smf_track_peek_next_event(SmfTrack *track)
 {
@@ -807,8 +971,12 @@ smf_track_peek_next_event(SmfTrack *track)
 }
 
 /**
- * \return Track with a given number or NULL, if there is no such track.
- * Tracks are numbered consecutively starting from one.
+ * smf_file_get_track_by_number:
+ * @smf: the SMF
+ * @track_number: number of track to get
+ *
+ * Returns: Track with a given number or NULL, if there is no such track.
+ *          Tracks are numbered consecutively starting from one.
  */
 SmfTrack *
 smf_file_get_track_by_number(const SmfFile *smf, int track_number)
@@ -828,8 +996,12 @@ smf_file_get_track_by_number(const SmfFile *smf, int track_number)
 }
 
 /**
- * \return Event with a given number or NULL, if there is no such event.
- * Events are numbered consecutively starting from one.
+ * smf_track_get_event_by_number:
+ * @track: the track
+ * @event_number: event number to retrieve
+ *
+ * Returns: Event with a given number or NULL, if there is no such event.
+ *   Events are numbered consecutively starting from one.
  */
 SmfEvent *
 smf_track_get_event_by_number(const SmfTrack *track, int event_number)
@@ -849,7 +1021,10 @@ smf_track_get_event_by_number(const SmfTrack *track, int event_number)
 }
 
 /**
- * \return Last event on the track or NULL, if track is empty.
+ * smf_track_get_last_event:
+ * @track: the track
+ *
+ * Returns: Last event on the track or NULL, if track is empty.
  */
 SmfEvent *
 smf_track_get_last_event(const SmfTrack *track)
@@ -865,9 +1040,13 @@ smf_track_get_last_event(const SmfTrack *track)
 }
 
 /**
+ * smf_file_find_track_with_next_event:
+ * @smf: the SMF
+ *
  * Searches for track that contains next event, in time order.  In other words,
  * returns the track that contains event that should be played next.
- * \return Track with next event or NULL, if there are no events left.
+ *
+ * Returns: Track with next event or NULL, if there are no events left.
  */
 SmfTrack *
 smf_file_find_track_with_next_event(SmfFile *smf)
@@ -895,8 +1074,11 @@ smf_file_find_track_with_next_event(SmfFile *smf)
 }
 
 /**
-  * \return Next event, in time order, or NULL, if there are none left.
-  */
+ * smf_file_get_next_event:
+ * @smf: the SMF
+ *
+ * Returns: Next event, in time order, or NULL, if there are none left.
+ */
 SmfEvent *
 smf_file_get_next_event(SmfFile *smf)
 {
@@ -921,9 +1103,12 @@ smf_file_get_next_event(SmfFile *smf)
 }
 
 /**
-  * Advance the "next event counter".  This is functionally the same as calling
-  * smf_get_next_event and ignoring the return value.
-  */
+ * smf_file_skip_next_event:
+ * @smf: the SMF
+ *
+ * Advance the "next event counter". This is functionally the same as calling
+ * smf_file_get_next_event() and ignoring the return value.
+ */
 void
 smf_file_skip_next_event(SmfFile *smf)
 {
@@ -934,9 +1119,12 @@ smf_file_skip_next_event(SmfFile *smf)
 }
 
 /**
-  * \return Next event, in time order, or NULL, if there are none left.  Does
-  * not advance position in song.
-  */
+ * smf_file_peek_next_event:
+ * @smf: the SMF
+ *
+ * Returns: Next event, in time order, or NULL, if there are none left.
+ *          Does not advance position in song.
+ */
 SmfEvent *
 smf_file_peek_next_event(SmfFile *smf)
 {
@@ -959,9 +1147,12 @@ smf_file_peek_next_event(SmfFile *smf)
 }
 
 /**
-  * Rewinds the SMF.  What that means is, after calling this routine, smf_get_next_event
-  * will return first event in the song.
-  */
+ * smf_file_rewind:
+ * @smf: the SMF
+ *
+ * Rewinds the SMF.  What that means is, after calling this routine, smf_file_get_next_event()
+ * will return first event in the song.
+ */
 void
 smf_file_rewind(SmfFile *smf)
 {
@@ -994,9 +1185,15 @@ smf_file_rewind(SmfFile *smf)
 }
 
 /**
-  * Seeks the SMF to the given event.  After calling this routine, smf_get_next_event
-  * will return the event that was the second argument of this call.
-  */
+ * smf_file_seek_to_event:
+ * @smf: the SMF
+ * @target: target event to seek to
+ *
+ * Seeks the SMF to the given event.  After calling this routine, smf_file_get_next_event()
+ * will return the event that was the second argument of this call.
+ *
+ * Returns: 0
+ */
 int
 smf_file_seek_to_event(SmfFile *smf, const SmfEvent *target)
 {
@@ -1026,10 +1223,15 @@ smf_file_seek_to_event(SmfFile *smf, const SmfEvent *target)
 }
 
 /**
-  * Seeks the SMF to the given position.  For example, after seeking to 1.0 seconds,
-  * smf_get_next_event will return first event that happens after the first second of song.
-  * \return 0 if everything went ok, nonzero otherwise.
-  */
+ * smf_file_seek_to_seconds:
+ * @smf: the SMF
+ * @seconds: seconds to seek to
+ *
+ * Seeks the SMF to the given position.  For example, after seeking to 1.0 seconds,
+ * smf_file_get_next_event() will return first event that happens after the first second of song.
+ *
+ * Returns: 0 if everything went ok, nonzero otherwise.
+ */
 int
 smf_file_seek_to_seconds(SmfFile *smf, double seconds)
 {
@@ -1070,10 +1272,15 @@ smf_file_seek_to_seconds(SmfFile *smf, double seconds)
 }
 
 /**
-  * Seeks the SMF to the given position.  For example, after seeking to 10 pulses,
-  * smf_get_next_event will return first event that happens after the first ten pulses.
-  * \return 0 if everything went ok, nonzero otherwise.
-  */
+ * smf_file_seek_to_pulses:
+ * @smf: the SMF
+ * @pulses: pulses to seek to
+ *
+ * Seeks the SMF to the given position.  For example, after seeking to 10 pulses,
+ * smf_file_get_next_event() will return first event that happens after the first ten pulses.
+ *
+ * Returns: 0 if everything went ok, nonzero otherwise.
+ */
 int
 smf_file_seek_to_pulses(SmfFile *smf, int pulses)
 {
@@ -1107,8 +1314,11 @@ smf_file_seek_to_pulses(SmfFile *smf, int pulses)
 }
 
 /**
-  * \return Length of SMF, in pulses.
-  */
+ * smf_file_get_length_pulses:
+ * @smf: the SMF
+ *
+ * Returns: Length of SMF, in pulses.
+ */
 int
 smf_file_get_length_pulses(const SmfFile *smf)
 {
@@ -1134,8 +1344,11 @@ smf_file_get_length_pulses(const SmfFile *smf)
 }
 
 /**
-  * \return Length of SMF, in seconds.
-  */
+ * smf_file_get_length_seconds:
+ * @smf: the SMF
+ *
+ * Returns: Length of SMF, in seconds.
+ */
 double
 smf_file_get_length_seconds(const SmfFile *smf)
 {
@@ -1162,9 +1375,12 @@ smf_file_get_length_seconds(const SmfFile *smf)
 }
 
 /**
-  * \return Nonzero, if there are no events in the SMF after this one.
-  * Note that may be more than one "last event", if they occur at the same time.
-  */
+ * smf_event_is_last:
+ * @event: event to test if it is last
+ *
+ * Returns: Nonzero, if there are no events in the SMF after this one.
+ *          Note that may be more than one "last event", if they occur at the same time.
+ */
 int
 smf_event_is_last(const SmfEvent *event)
 {
@@ -1175,8 +1391,10 @@ smf_event_is_last(const SmfEvent *event)
 }
 
 /**
-  * \return Version of libsmf.
-  */
+ * smf_get_version:
+ *
+ * Returns: Version of libsmf.
+ */
 const char *
 smf_get_version(void)
 {

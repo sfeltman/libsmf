@@ -25,7 +25,7 @@
  *
  */
 
-/**
+/*
  * \file
  *
  * Event decoding routines.
@@ -49,9 +49,12 @@
 #define BUFFER_SIZE 1024
 
 /**
- * \return Nonzero if event is metaevent.  You should never send metaevents;
- * they are not really MIDI messages.  They carry information like track title,
- * time signature etc.
+ * smf_event_is_metadata:
+ * @event: the event to test
+ *
+ * Returns: Nonzero if event is metaevent.  You should never send metaevents;
+ *   they are not really MIDI messages.  They carry information like track title,
+ *   time signature etc.
  */
 int
 smf_event_is_metadata(const smf_event_t *event)
@@ -66,7 +69,10 @@ smf_event_is_metadata(const smf_event_t *event)
 }
 
 /**
- * \return Nonzero if event is System Realtime.
+ * smf_event_is_system_realtime:
+ * @event: the event to test
+ *
+ * Returns: Nonzero if event is System Realtime.
  */
 int
 smf_event_is_system_realtime(const smf_event_t *event)
@@ -84,7 +90,10 @@ smf_event_is_system_realtime(const smf_event_t *event)
 }
 
 /**
- * \return Nonzero if event is System Common.
+ * smf_event_is_system_common:
+ * @event: the event to test
+ *
+ * Returns: Nonzero if event is System Common.
  */
 int
 smf_event_is_system_common(const smf_event_t *event)
@@ -97,9 +106,13 @@ smf_event_is_system_common(const smf_event_t *event)
 
 	return (0);
 }
+
 /**
-  * \return Nonzero if event is SysEx message.
-  */
+ * smf_event_is_sysex:
+ * @event: the event to test
+ *
+ * Returns: Nonzero if event is SysEx message.
+ */
 int
 smf_event_is_sysex(const smf_event_t *event)
 {
@@ -504,12 +517,15 @@ note_from_int(char *buf, int note_number)
 }
 
 /**
- * \return Textual representation of the event given, or NULL, if event is unknown.
- * Returned string looks like this:
+ * smf_event_decode:
+ * @event: the event to decode
  *
+ * Returns: (transfer full): Textual representation of the event given, or NULL,
+ *   if event is unknown. You should free the returned string afterwards, using free(3).
+ *   Returned string looks like this:
+ * |[
  * Note On, channel 1, note F#3, velocity 0
- *
- * You should free the returned string afterwards, using free(3).
+ * ]|
  */
 char *
 smf_event_decode(const smf_event_t *event)
@@ -588,12 +604,16 @@ smf_event_decode(const smf_event_t *event)
 }
 
 /**
- * \return Textual representation of the data extracted from MThd header, or NULL, if something goes wrong.
- * Returned string looks like this:
+ * smf_file_decode:
+ * @smf: the SMF
  *
+ * Returns: (transfer full): Textual representation of the data extracted
+ *   from MThd header, or NULL, if something goes wrong.
+ *   You should free the returned string afterwards, using free(3).
+ *   Returned string looks like this:
+ * |[
  * format: 1 (several simultaneous tracks); number of tracks: 4; division: 192 PPQN.
- *
- * You should free the returned string afterwards, using free(3).
+ * ]|
  */
 char *
 smf_file_decode(const smf_t *smf)

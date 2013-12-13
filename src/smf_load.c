@@ -25,7 +25,7 @@
  *
  */
 
-/**
+/*
  * \file
  *
  * Standard MIDI File format loader.
@@ -48,7 +48,7 @@
 #include "smf.h"
 #include "smf_private.h"
 
-/**
+/*
  * Returns pointer to the next SMF chunk in smf->buffer, based on length of the previous one.
  * Returns NULL in case of error.
  */
@@ -90,7 +90,7 @@ next_chunk(smf_t *smf)
 	return (chunk);
 }
 
-/**
+/*
  * Returns 1, iff signature of the "chunk" is the same as string passed as "signature".
  */
 static int
@@ -102,7 +102,7 @@ chunk_signature_matches(const struct chunk_header_struct *chunk, const char *sig
 	return (0);
 }
 
-/**
+/*
  * Verifies if MThd header looks OK.  Returns 0 iff it does.
  */
 static int
@@ -149,7 +149,7 @@ parse_mthd_header(smf_t *smf)
 	return (0);
 }
 
-/**
+/*
  * Parses MThd chunk, filling "smf" structure with values extracted from it.  Returns 0 iff everything went OK.
  */
 static int
@@ -205,7 +205,7 @@ parse_mthd_chunk(smf_t *smf)
 	return (0);
 }
 
-/**
+/*
  * Interprets Variable Length Quantity pointed at by "buf" and puts its value into "value" and number
  * of bytes consumed into "len", making sure it does not read past "buf" + "buffer_length".
  * Explanation of Variable Length Quantities is here: http://www.borg.com/~jglatt/tech/midifile/vari.htm
@@ -244,7 +244,7 @@ extract_vlq(const unsigned char *buf, const int buffer_length, int *value, int *
 	return (0);
 }
 
-/**
+/*
  * Returns 1 if the given byte is a valid status byte, 0 otherwise.
  */
 int
@@ -271,7 +271,7 @@ is_escape_byte(const unsigned char status)
 	return (0);
 }
 
-/**
+/*
  * Just like expected_message_length(), but only for System Exclusive messages.
  * Note that value returned by this thing here is the length of SysEx "on the wire",
  * not the number of bytes that this sysex takes in the file - in SMF format sysex
@@ -307,7 +307,7 @@ expected_escaped_length(const unsigned char status, const unsigned char *second_
 	return (expected_sysex_length(status, second_byte, buffer_length, consumed_bytes) - 1);
 }
 
-/**
+/*
  * Returns expected length of the midi message (including the status byte), in bytes, for the given status byte.
  * The "second_byte" points to the expected second byte of the MIDI message.  "buffer_length" is the buffer
  * length limit, counting from "second_byte".  Returns value < 0 iff there was an error.
@@ -475,7 +475,7 @@ extract_escaped_event(const unsigned char *buf, const int buffer_length, smf_eve
 }
 
 
-/**
+/*
  * Puts MIDI data extracted from from "buf" into "event" and number of consumed bytes into "len".
  * In case valid status is not found, it uses "last_status" (so called "running status").
  * Returns 0 iff everything went OK, value < 0 in case of error.
@@ -535,7 +535,7 @@ extract_midi_event(const unsigned char *buf, const int buffer_length, smf_event_
 	return (0);
 }
 
-/**
+/*
  * Locates, basing on track->next_event_offset, the next event data in track->buffer,
  * interprets it, allocates smf_event_t and fills it properly.  Returns smf_event_t
  * or NULL, if there was an error.  Allocating event means adding it to the track;
@@ -590,7 +590,7 @@ error:
 	return (NULL);
 }
 
-/**
+/*
  * Takes "len" characters starting in "buf", making sure it does not access past the length of the buffer,
  * and makes ordinary, zero-terminated string from it.  May return NULL if there was any problem.
  */ 
@@ -621,9 +621,12 @@ make_string(const unsigned char *buf, const int buffer_length, int len)
 }
 
 /**
- * \return 1, if passed a metaevent containing text, that is, Text, Copyright,
- * Sequence/Track Name, Instrument, Lyric, Marker, Cue Point, Program Name,
- * or Device Name; 0 otherwise.
+ * smf_event_is_textual:
+ * @event: the event to test
+ *
+ * Returns: 1, if passed a metaevent containing text, that is, Text, Copyright,
+ *   Sequence/Track Name, Instrument, Lyric, Marker, Cue Point, Program Name,
+ *   or Device Name; 0 otherwise.
  */
 int
 smf_event_is_textual(const smf_event_t *event)
@@ -641,9 +644,13 @@ smf_event_is_textual(const smf_event_t *event)
 }
 
 /**
+ * smf_event_extract_text:
+ * @event: event to extract text from
+ *
  * Extracts text from "textual metaevents", such as Text or Lyric.
  *
- * \return Zero-terminated string extracted from "text events" or NULL, if there was any problem.
+ * Returns: (transfer full): Zero-terminated string extracted from "text events"
+ *   or NULL if there was any problem.
  */
 char *
 smf_event_extract_text(const smf_event_t *event)
@@ -668,7 +675,7 @@ smf_event_extract_text(const smf_event_t *event)
 	return (make_string((void *)(&event->midi_buffer[2] + length_length), event->midi_buffer_length - 2 - length_length, string_length));
 }
 
-/**
+/*
  * Verify if the next chunk really is MTrk chunk, and if so, initialize some track variables and return 0.
  * Return different value otherwise.
  */
@@ -700,7 +707,7 @@ parse_mtrk_header(smf_track_t *track)
 	return (0);
 }
 
-/**
+/*
  * Return 1 if event is end-of-the-track, 0 otherwise.
  */
 static int
@@ -713,8 +720,10 @@ event_is_end_of_track(const smf_event_t *event)
 }
 
 /**
- * \return Nonzero, if event is as long as it should be, from the MIDI specification point of view.
- * Does not work for SysExes - it doesn't recognize internal structure of SysEx.
+ * smf_event_length_is_valid:
+ *
+ * Returns: Nonzero, if event is as long as it should be, from the MIDI specification point of view.
+ *   Does not work for SysExes - it doesn't recognize internal structure of SysEx.
  */
 int
 smf_event_length_is_valid(const smf_event_t *event)
@@ -739,8 +748,11 @@ smf_event_length_is_valid(const smf_event_t *event)
 }
 
 /**
- * \return Nonzero, if MIDI data in the event is valid, 0 otherwise.  For example,
- * it checks if event length is correct.
+ * smf_event_is_valid:
+ * @event: the event to test
+ *
+ * Returns: Nonzero, if MIDI data in the event is valid, 0 otherwise.  For example,
+ *   it checks if event length is correct.
  */
 /* XXX: this routine requires some more work to detect more errors. */
 int
@@ -762,7 +774,7 @@ smf_event_is_valid(const smf_event_t *event)
 	return (1);
 }
 
-/**
+/*
  * Parse events and put it on the track.
  */
 static int
@@ -799,7 +811,7 @@ parse_mtrk_chunk(smf_track_t *track)
 	return (0);
 }
 
-/**
+/*
  * Allocate buffer of proper size and read file contents into it.  Close file afterwards.
  */
 static int
@@ -855,9 +867,17 @@ load_file_into_buffer(void **file_buffer, int *file_buffer_length, const char *f
 }
 
 /**
-  * Creates new SMF and fills it with data loaded from the given buffer.
- * \return SMF or NULL, if loading failed.
-  */
+ * smf_file_load_from_memory:
+ * @buffer: (array length=buffer_length) (element-type guint8) (transfer none):
+ *   memory buffer containing an SMF file.
+ * @buffer_length: length of @buffer
+ *
+ * Creates new SMF and fills it with data loaded from the given @buffer.
+ *
+ * Returns: (transfer full): SMF or NULL, if loading failed.
+ *
+ * Since: 1.4
+ */
 smf_t *
 smf_file_load_from_memory(const void *buffer, const int buffer_length)
 {
@@ -905,10 +925,14 @@ smf_file_load_from_memory(const void *buffer, const int buffer_length)
 }
 
 /**
+ * smf_file_load:
+ * @file_name: Path to the file.
+ *
  * Loads SMF file.
  *
- * \param file_name Path to the file.
- * \return SMF or NULL, if loading failed.
+ * Returns: SMF or NULL, if loading failed.
+ *
+ * Since: 1.4
  */
 smf_t *
 smf_file_load(const char *file_name)

@@ -25,7 +25,7 @@
  *
  */
 
-/**
+/*
  * \file
  *
  * "SMF shell", command line utility.
@@ -826,7 +826,7 @@ cmd_help(char *notused)
 	return (0);
 }
 
-/**
+/*
  * Removes (in place) all whitespace characters before the first
  * non-whitespace and all trailing whitespace characters.  Replaces
  * more than one consecutive whitespace characters with one.
