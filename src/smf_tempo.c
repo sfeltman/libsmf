@@ -245,12 +245,12 @@ pulses_from_seconds(const smf_t *smf, double seconds)
  * Warning: rewinds the smf.
  */
 void
-smf_create_tempo_map_and_compute_seconds(smf_t *smf)
+smf_file_create_tempo_map_and_compute_seconds(smf_t *smf)
 {
 	smf_event_t *event;
 
 	smf_rewind(smf);
-	smf_init_tempo(smf);
+	smf_file_init_tempo(smf);
 
 	for (;;) {
 		event = smf_get_next_event(smf);
@@ -267,7 +267,7 @@ smf_create_tempo_map_and_compute_seconds(smf_t *smf)
 }
 
 smf_tempo_t *
-smf_get_tempo_by_number(const smf_t *smf, int number)
+smf_file_get_tempo_by_number(const smf_t *smf, int number)
 {
 	assert(number >= 0);
 
@@ -281,7 +281,7 @@ smf_get_tempo_by_number(const smf_t *smf, int number)
  * Return last tempo (i.e. tempo with greatest time_pulses) that happens before "pulses".
  */
 smf_tempo_t *
-smf_get_tempo_by_pulses(const smf_t *smf, int pulses)
+smf_file_get_tempo_by_pulses(const smf_t *smf, int pulses)
 {
 	int i;
 	smf_tempo_t *tempo;
@@ -308,7 +308,7 @@ smf_get_tempo_by_pulses(const smf_t *smf, int pulses)
  * Return last tempo (i.e. tempo with greatest time_seconds) that happens before "seconds".
  */
 smf_tempo_t *
-smf_get_tempo_by_seconds(const smf_t *smf, double seconds)
+smf_file_get_tempo_by_seconds(const smf_t *smf, double seconds)
 {
 	int i;
 	smf_tempo_t *tempo;
@@ -336,7 +336,7 @@ smf_get_tempo_by_seconds(const smf_t *smf, double seconds)
  * Return last tempo.
  */
 smf_tempo_t *
-smf_get_last_tempo(const smf_t *smf)
+smf_file_get_last_tempo(const smf_t *smf)
 {
 	smf_tempo_t *tempo;
 
@@ -352,7 +352,7 @@ smf_get_last_tempo(const smf_t *smf)
  * Remove all smf_tempo_t structures from SMF.
  */
 void
-smf_fini_tempo(smf_t *smf)
+smf_file_fini_tempo(smf_t *smf)
 {
 	g_ptr_array_set_size(smf->tempo_array, 0);
 }
@@ -365,11 +365,11 @@ smf_fini_tempo(smf_t *smf)
  * \bug This will abort (by calling g_error) if new_tempo() (memory allocation there) fails.
  */
 void
-smf_init_tempo(smf_t *smf)
+smf_file_init_tempo(smf_t *smf)
 {
 	smf_tempo_t *tempo;
 
-	smf_fini_tempo(smf);
+	smf_file_fini_tempo(smf);
 
 	tempo = new_tempo(smf, 0);
 	if (tempo == NULL)

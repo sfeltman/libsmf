@@ -51,18 +51,18 @@
  * Allocates new smf_t structure.
  * \return pointer to smf_t or NULL.
  */
-smf_t *
-smf_new(void)
+SmfFile *
+smf_file_new(void)
 {
 	int cantfail;
 
-	smf_t *smf = malloc(sizeof(smf_t));
+	SmfFile *smf = malloc(sizeof(SmfFile));
 	if (smf == NULL) {
-		g_critical("Cannot allocate smf_t structure: %s", strerror(errno));
+		g_critical("Cannot allocate SmfFile structure: %s", strerror(errno));
 		return (NULL);
 	}
 
-	memset(smf, 0, sizeof(smf_t));
+	memset(smf, 0, sizeof(SmfFile));
 	smf->ref_count = 1;
 
 	smf->tracks_array = g_ptr_array_new_with_free_func(
@@ -79,7 +79,7 @@ smf_new(void)
 	cantfail = smf_set_format(smf, 0);
 	assert(!cantfail);
 
-	smf_init_tempo(smf);
+	smf_file_init_tempo(smf);
 
 	return (smf);
 }
@@ -88,13 +88,13 @@ smf_new(void)
  * Frees smf and all it's descendant structures.
  */
 void
-smf_delete(smf_t *smf)
+smf_file_delete(SmfFile *smf)
 {
-	smf_unref(smf);
+	smf_file_unref(smf);
 }
 
-smf_t *
-smf_ref(smf_t *smf)
+SmfFile *
+smf_file_ref(SmfFile *smf)
 {
 	g_return_val_if_fail (smf, NULL);
 	g_atomic_int_inc (&smf->ref_count);
@@ -102,10 +102,10 @@ smf_ref(smf_t *smf)
 }
 
 void
-smf_unref(smf_t *smf)
+smf_file_unref(SmfFile *smf)
 {
 	if (g_atomic_int_dec_and_test (&smf->ref_count)) {
-		smf_fini_tempo(smf);
+		smf_file_fini_tempo(smf);
 		g_ptr_array_free(smf->tracks_array, TRUE);
 		g_ptr_array_free(smf->tempo_array, TRUE);
 
@@ -117,16 +117,16 @@ smf_unref(smf_t *smf)
  * Allocates new smf_track_t structure.
  * \return pointer to smf_track_t or NULL.
  */
-smf_track_t *
+SmfTrack *
 smf_track_new(void)
 {
-	smf_track_t *track = malloc(sizeof(smf_track_t));
+	SmfTrack *track = malloc(sizeof(SmfTrack));
 	if (track == NULL) {
-		g_critical("Cannot allocate smf_track_t structure: %s", strerror(errno));
+		g_critical("Cannot allocate SmfTrack structure: %s", strerror(errno));
 		return (NULL);
 	}
 
-	memset(track, 0, sizeof(smf_track_t));
+	memset(track, 0, sizeof(SmfTrack));
 	track->ref_count = 1;
 	track->next_event_number = -1;
 
@@ -141,19 +141,19 @@ smf_track_new(void)
  * Detaches track from its smf and frees it.
  */
 void
-smf_track_delete(smf_track_t *track)
+smf_track_delete(SmfTrack *track)
 {
 	assert(track);
 
 	if (track->smf) {
-		smf_remove_track(track->smf, track);
+		smf_file_remove_track(track->smf, track);
 	} else {
 		smf_track_unref(track);
 	}
 }
 
-smf_track_t *
-smf_track_ref(smf_track_t *track)
+SmfTrack *
+smf_track_ref(SmfTrack *track)
 {
     g_return_val_if_fail (track, NULL);
     g_atomic_int_inc (&track->ref_count);
@@ -178,7 +178,7 @@ smf_track_unref(smf_track_t *track)
  * Appends smf_track_t to smf.
  */
 void
-smf_add_track(smf_t *smf, smf_track_t *track)
+smf_file_add_track(SmfFile *smf, SmfTrack *track)
 {
 	int cantfail;
 
@@ -201,11 +201,11 @@ smf_add_track(smf_t *smf, smf_track_t *track)
  * Detaches track from the smf.
  */
 void
-smf_remove_track(smf_t *smf, smf_track_t *track)
+smf_file_remove_track(smf_t *smf, smf_track_t *track)
 {
 	int i, j;
-	smf_track_t *tmp;
-	smf_event_t *ev;
+	SmfTrack *tmp;
+	SmfEvent *ev;
 
 	assert(smf != NULL);
 
@@ -241,7 +241,7 @@ void
 smf_track_remove_from_smf(smf_track_t *track)
 {
 	assert(track->smf);
-	smf_remove_track(track->smf, track);
+	smf_file_remove_track(track->smf, track);
 }
 
 
@@ -251,16 +251,16 @@ smf_track_remove_from_smf(smf_track_t *track)
  * Note that event->midi_buffer will be freed by smf_event_delete.
  * \return pointer to smf_event_t or NULL.
  */
-smf_event_t *
+SmfEvent *
 smf_event_new(void)
 {
-	smf_event_t *event = malloc(sizeof(smf_event_t));
+	SmfEvent *event = malloc(sizeof(SmfEvent));
 	if (event == NULL) {
-		g_critical("Cannot allocate smf_event_t structure: %s", strerror(errno));
+		g_critical("Cannot allocate SmfEvent structure: %s", strerror(errno));
 		return (NULL);
 	}
 
-	memset(event, 0, sizeof(smf_event_t));
+	memset(event, 0, sizeof(SmfEvent));
 
 	event->ref_count = 1;
 	event->delta_time_pulses = -1;
@@ -278,10 +278,10 @@ smf_event_new(void)
  * \param len Length of the buffer.  It must be proper MIDI event length, e.g. 3 for Note On event.
  * \return Event containing MIDI data or NULL.
  */
-smf_event_t *
+SmfEvent *
 smf_event_new_from_pointer(void *midi_data, int len)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	event = smf_event_new();
 	if (event == NULL)
@@ -317,12 +317,12 @@ smf_event_new_from_pointer(void *midi_data, int len)
  * \param third_byte Third byte of MIDI message or -1, if message is two bytes long.
  * \return Event containing MIDI data or NULL.
  */
-smf_event_t *
+SmfEvent *
 smf_event_new_from_bytes(int first_byte, int second_byte, int third_byte)
 {
 	int len;
 
-	smf_event_t *event;
+	SmfEvent *event;
 
 	event = smf_event_new();
 	if (event == NULL)
@@ -399,7 +399,7 @@ smf_event_new_from_bytes(int first_byte, int second_byte, int third_byte)
  * Detaches event from its track and frees it.
  */
 void
-smf_event_delete(smf_event_t *event)
+smf_event_delete(SmfEvent *event)
 {
 	g_return_if_fail (event);
 	if (event->track != NULL) {
@@ -409,8 +409,8 @@ smf_event_delete(smf_event_t *event)
 	}
 }
 
-smf_event_t *
-smf_event_ref(smf_event_t *event)
+SmfEvent *
+smf_event_ref(SmfEvent *event)
 {
     g_return_val_if_fail (event, NULL);
     g_atomic_int_inc (&event->ref_count);
@@ -418,7 +418,7 @@ smf_event_ref(smf_event_t *event)
 }
 
 void
-smf_event_unref(smf_event_t *event)
+smf_event_unref(SmfEvent *event)
 {
 	g_return_if_fail (event);
 
@@ -439,12 +439,12 @@ smf_event_unref(smf_event_t *event)
 static gint
 events_array_compare_function(gconstpointer aa, gconstpointer bb)
 {
-	smf_event_t *a, *b;
+	SmfEvent *a, *b;
 	
 	/* "The comparison function for g_ptr_array_sort() doesn't take the pointers
 	    from the array as arguments, it takes pointers to the pointers in the array." */
-	a = (smf_event_t *)*(gpointer *)aa;
-	b = (smf_event_t *)*(gpointer *)bb;
+	a = (SmfEvent *)*(gpointer *)aa;
+	b = (SmfEvent *)*(gpointer *)bb;
 
 	if (a->time_pulses < b->time_pulses)
 		return (-1);
@@ -471,9 +471,9 @@ events_array_compare_function(gconstpointer aa, gconstpointer bb)
  * An assumption here is that if there is an EOT event, it will be at the end of the track.
  */
 static void
-remove_eot_if_before_pulses(smf_track_t *track, int pulses)
+remove_eot_if_before_pulses(SmfTrack *track, int pulses)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	event = smf_track_get_last_event(track);
 
@@ -486,7 +486,7 @@ remove_eot_if_before_pulses(smf_track_t *track, int pulses)
 	if (event->time_pulses > pulses)
 		return;
 
-	smf_event_remove_from_track(event);
+	smf_track_remove_event(track, event);
 }
 
 /**
@@ -497,7 +497,7 @@ remove_eot_if_before_pulses(smf_track_t *track, int pulses)
  * If you try to add event after an EOT, EOT event will be automatically deleted.
  */
 void
-smf_track_add_event(smf_track_t *track, smf_event_t *event)
+smf_track_add_event(SmfTrack *track, SmfEvent *event)
 {
 	int i, last_pulses = 0;
 
@@ -537,7 +537,7 @@ smf_track_add_event(smf_track_t *track, smf_event_t *event)
 
 		/* Renumber entries and fix their ->delta_pulses. */
 		for (i = 1; i <= track->number_of_events; i++) {
-			smf_event_t *tmp = smf_track_get_event_by_number(track, i);
+			SmfEvent *tmp = smf_track_get_event_by_number(track, i);
 			tmp->event_number = i;
 
 			if (tmp->delta_time_pulses != -1)
@@ -554,7 +554,7 @@ smf_track_add_event(smf_track_t *track, smf_event_t *event)
 
 		/* Adjust ->delta_time_pulses of the next event. */
 		if (event->event_number < track->number_of_events) {
-			smf_event_t *next_event = smf_track_get_event_by_number(track, event->event_number + 1);
+			SmfEvent *next_event = smf_track_get_event_by_number(track, event->event_number + 1);
 			assert(next_event);
 			assert(next_event->time_pulses >= event->time_pulses);
 			next_event->delta_time_pulses -= event->delta_time_pulses;
@@ -566,7 +566,7 @@ smf_track_add_event(smf_track_t *track, smf_event_t *event)
 		if (smf_event_is_last(event))
 			maybe_add_to_tempo_map(event);
 		else
-			smf_create_tempo_map_and_compute_seconds(event->track->smf);
+			smf_file_create_tempo_map_and_compute_seconds(event->track->smf);
 	}
 }
 
@@ -580,9 +580,9 @@ smf_track_add_event(smf_track_t *track, smf_event_t *event)
  * \return 0 if everything went ok, nonzero otherwise.
  */
 int
-smf_track_add_eot_delta_pulses(smf_track_t *track, int delta)
+smf_track_add_eot_delta_pulses(SmfTrack *track, int delta)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	event = smf_event_new_from_bytes(0xFF, 0x2F, 0x00);
 	if (event == NULL)
@@ -594,9 +594,9 @@ smf_track_add_eot_delta_pulses(smf_track_t *track, int delta)
 }
 
 int
-smf_track_add_eot_pulses(smf_track_t *track, int pulses)
+smf_track_add_eot_pulses(SmfTrack *track, int pulses)
 {
-	smf_event_t *event, *last_event;
+	SmfEvent *event, *last_event;
 
 	last_event = smf_track_get_last_event(track);
 	if (last_event != NULL) {
@@ -614,9 +614,9 @@ smf_track_add_eot_pulses(smf_track_t *track, int pulses)
 }
 
 int
-smf_track_add_eot_seconds(smf_track_t *track, double seconds)
+smf_track_add_eot_seconds(SmfTrack *track, double seconds)
 {
-	smf_event_t *event, *last_event;
+	SmfEvent *event, *last_event;
 
 	last_event = smf_track_get_last_event(track);
 	if (last_event != NULL) {
@@ -640,7 +640,7 @@ void
 smf_track_remove_event(smf_track_t *track, smf_event_t *event)
 {
 	int i, was_last;
-	smf_event_t *tmp;
+	SmfEvent *tmp;
 
 	assert(track != NULL);
 	assert(track->smf != NULL);
@@ -671,7 +671,7 @@ smf_track_remove_event(smf_track_t *track, smf_event_t *event)
 		if (was_last)
 			remove_last_tempo_with_pulses(event->track->smf, event->time_pulses);
 		else
-			smf_create_tempo_map_and_compute_seconds(track->smf);
+			smf_file_create_tempo_map_and_compute_seconds(track->smf);
 	}
 
 	event->track = NULL;
@@ -692,7 +692,7 @@ smf_event_remove_from_track(smf_event_t *event)
   * \return Nonzero if event is Tempo Change or Time Signature metaevent.
   */
 int
-smf_event_is_tempo_change_or_time_signature(const smf_event_t *event)
+smf_event_is_tempo_change_or_time_signature(const SmfEvent *event)
 {
 	if (!smf_event_is_metadata(event))
 		return (0);
@@ -714,7 +714,7 @@ smf_event_is_tempo_change_or_time_signature(const smf_event_t *event)
   * \return 0 if everything went ok, nonzero otherwise.
   */
 int
-smf_set_format(smf_t *smf, int format)
+smf_file_set_format(SmfFile *smf, int format)
 {
 	assert(format == 0 || format == 1);
 
@@ -737,7 +737,7 @@ smf_set_format(smf_t *smf, int format)
   * \return 0 if everything went ok, nonzero otherwise.
   */
 int
-smf_set_ppqn(smf_t *smf, int ppqn)
+smf_file_set_ppqn(SmfFile *smf, int ppqn)
 {
 	assert(ppqn > 0);
 
@@ -754,10 +754,10 @@ smf_set_ppqn(smf_t *smf, int ppqn)
   *
   * \return Event or NULL, if there are no more events left in this track.
   */
-smf_event_t *
-smf_track_get_next_event(smf_track_t *track)
+SmfEvent *
+smf_track_get_next_event(SmfTrack *track)
 {
-	smf_event_t *event, *next_event;
+	SmfEvent *event, *next_event;
 
 	/* End of track? */
 	if (track->next_event_number == -1)
@@ -789,10 +789,10 @@ smf_track_get_next_event(smf_track_t *track)
   * so repeatedly calling this routine will return the same event.
   * \return Event or NULL, if there are no more events left in this track.
   */
-static smf_event_t *
-smf_peek_next_event_from_track(smf_track_t *track)
+static SmfEvent *
+smf_track_peek_next_event(SmfTrack *track)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	/* End of track? */
 	if (track->next_event_number == -1)
@@ -810,17 +810,17 @@ smf_peek_next_event_from_track(smf_track_t *track)
  * \return Track with a given number or NULL, if there is no such track.
  * Tracks are numbered consecutively starting from one.
  */
-smf_track_t *
-smf_get_track_by_number(const smf_t *smf, int track_number)
+SmfTrack *
+smf_file_get_track_by_number(const SmfFile *smf, int track_number)
 {
-	smf_track_t *track;
+	SmfTrack *track;
 
 	assert(track_number >= 1);
 
 	if (track_number > smf->number_of_tracks)
 		return (NULL);
 
-	track = (smf_track_t *)g_ptr_array_index(smf->tracks_array, track_number - 1);
+	track = (SmfTrack *)g_ptr_array_index(smf->tracks_array, track_number - 1);
 
 	assert(track);
 
@@ -831,10 +831,10 @@ smf_get_track_by_number(const smf_t *smf, int track_number)
  * \return Event with a given number or NULL, if there is no such event.
  * Events are numbered consecutively starting from one.
  */
-smf_event_t *
-smf_track_get_event_by_number(const smf_track_t *track, int event_number)
+SmfEvent *
+smf_track_get_event_by_number(const SmfTrack *track, int event_number)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	assert(event_number >= 1);
 
@@ -851,10 +851,10 @@ smf_track_get_event_by_number(const smf_track_t *track, int event_number)
 /**
  * \return Last event on the track or NULL, if track is empty.
  */
-smf_event_t *
-smf_track_get_last_event(const smf_track_t *track)
+SmfEvent *
+smf_track_get_last_event(const SmfTrack *track)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	if (track->number_of_events == 0)
 		return (NULL);
@@ -869,11 +869,11 @@ smf_track_get_last_event(const smf_track_t *track)
  * returns the track that contains event that should be played next.
  * \return Track with next event or NULL, if there are no events left.
  */
-smf_track_t *
-smf_find_track_with_next_event(smf_t *smf)
+SmfTrack *
+smf_file_find_track_with_next_event(SmfFile *smf)
 {
 	int i, min_time = 0;
-	smf_track_t *track = NULL, *min_time_track = NULL;
+	SmfTrack *track = NULL, *min_time_track = NULL;
 
 	/* Find track with event that should be played next. */
 	for (i = 1; i <= smf->number_of_tracks; i++) {
@@ -897,11 +897,11 @@ smf_find_track_with_next_event(smf_t *smf)
 /**
   * \return Next event, in time order, or NULL, if there are none left.
   */
-smf_event_t *
-smf_get_next_event(smf_t *smf)
+SmfEvent *
+smf_file_get_next_event(SmfFile *smf)
 {
-	smf_event_t *event;
-	smf_track_t *track = smf_find_track_with_next_event(smf);
+	SmfEvent *event;
+	SmfTrack *track = smf_file_find_track_with_next_event(smf);
 
 	if (track == NULL) {
 #if 0
@@ -925,11 +925,11 @@ smf_get_next_event(smf_t *smf)
   * smf_get_next_event and ignoring the return value.
   */
 void
-smf_skip_next_event(smf_t *smf)
+smf_file_skip_next_event(SmfFile *smf)
 {
 	void *notused;
 
-	notused = smf_get_next_event(smf);
+	notused = smf_file_get_next_event(smf);
 	(void) notused;
 }
 
@@ -937,11 +937,11 @@ smf_skip_next_event(smf_t *smf)
   * \return Next event, in time order, or NULL, if there are none left.  Does
   * not advance position in song.
   */
-smf_event_t *
-smf_peek_next_event(smf_t *smf)
+SmfEvent *
+smf_file_peek_next_event(SmfFile *smf)
 {
-	smf_event_t *event;
-	smf_track_t *track = smf_find_track_with_next_event(smf);
+	SmfEvent *event;
+	SmfTrack *track = smf_file_find_track_with_next_event(smf);
 
 	if (track == NULL) {
 #if 0
@@ -951,7 +951,7 @@ smf_peek_next_event(smf_t *smf)
 		return (NULL);
 	}
 
-	event = smf_peek_next_event_from_track(track);
+	event = smf_track_peek_next_event(track);
 	
 	assert(event != NULL);
 
@@ -963,24 +963,24 @@ smf_peek_next_event(smf_t *smf)
   * will return first event in the song.
   */
 void
-smf_rewind(smf_t *smf)
+smf_file_rewind(SmfFile *smf)
 {
 	int i;
-	smf_track_t *track = NULL;
-	smf_event_t *event;
+	SmfTrack *track = NULL;
+	SmfEvent *event;
 
 	assert(smf);
 
 	smf->last_seek_position = 0.0;
 
 	for (i = 1; i <= smf->number_of_tracks; i++) {
-		track = smf_get_track_by_number(smf, i);
+		track = smf_file_get_track_by_number(smf, i);
 
 		assert(track != NULL);
 
 		if (track->number_of_events > 0) {
 			track->next_event_number = 1;
-			event = smf_peek_next_event_from_track(track);
+			event = smf_track_peek_next_event(track);
 			assert(event);
 			track->time_of_next_event = event->time_pulses;
 		} else {
@@ -998,9 +998,9 @@ smf_rewind(smf_t *smf)
   * will return the event that was the second argument of this call.
   */
 int
-smf_seek_to_event(smf_t *smf, const smf_event_t *target)
+smf_file_seek_to_event(SmfFile *smf, const SmfEvent *target)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	smf_rewind(smf);
 
@@ -1009,7 +1009,7 @@ smf_seek_to_event(smf_t *smf, const smf_event_t *target)
 #endif
 
 	for (;;) {
-		event = smf_peek_next_event(smf);
+		event = smf_file_peek_next_event(smf);
 
 		/* There can't be NULL here, unless "target" is not in this smf. */
 		assert(event);
@@ -1031,9 +1031,9 @@ smf_seek_to_event(smf_t *smf, const smf_event_t *target)
   * \return 0 if everything went ok, nonzero otherwise.
   */
 int
-smf_seek_to_seconds(smf_t *smf, double seconds)
+smf_file_seek_to_seconds(SmfFile *smf, double seconds)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	assert(seconds >= 0.0);
 
@@ -1051,7 +1051,7 @@ smf_seek_to_seconds(smf_t *smf, double seconds)
 #endif
 
 	for (;;) {
-		event = smf_peek_next_event(smf);
+		event = smf_file_peek_next_event(smf);
 
 		if (event == NULL) {
 			g_critical("Trying to seek past the end of song.");
@@ -1075,9 +1075,9 @@ smf_seek_to_seconds(smf_t *smf, double seconds)
   * \return 0 if everything went ok, nonzero otherwise.
   */
 int
-smf_seek_to_pulses(smf_t *smf, int pulses)
+smf_file_seek_to_pulses(SmfFile *smf, int pulses)
 {
-	smf_event_t *event;
+	SmfEvent *event;
 
 	assert(pulses >= 0);
 
@@ -1088,7 +1088,7 @@ smf_seek_to_pulses(smf_t *smf, int pulses)
 #endif
 
 	for (;;) {
-		event = smf_peek_next_event(smf);
+		event = smf_file_peek_next_event(smf);
 
 		if (event == NULL) {
 			g_critical("Trying to seek past the end of song.");
@@ -1110,15 +1110,15 @@ smf_seek_to_pulses(smf_t *smf, int pulses)
   * \return Length of SMF, in pulses.
   */
 int
-smf_get_length_pulses(const smf_t *smf)
+smf_file_get_length_pulses(const SmfFile *smf)
 {
 	int pulses = 0, i;
 
 	for (i = 1; i <= smf->number_of_tracks; i++) {
-		smf_track_t *track;
-		smf_event_t *event;
+		SmfTrack *track;
+		SmfEvent *event;
 
-	       	track = smf_get_track_by_number(smf, i);
+	       	track = smf_file_get_track_by_number(smf, i);
 		assert(track);
 
 		event = smf_track_get_last_event(track);
@@ -1137,16 +1137,16 @@ smf_get_length_pulses(const smf_t *smf)
   * \return Length of SMF, in seconds.
   */
 double
-smf_get_length_seconds(const smf_t *smf)
+smf_file_get_length_seconds(const SmfFile *smf)
 {
 	int i;
 	double seconds = 0.0;
 
 	for (i = 1; i <= smf->number_of_tracks; i++) {
-		smf_track_t *track;
-		smf_event_t *event;
+		SmfTrack *track;
+		SmfEvent *event;
 
-	       	track = smf_get_track_by_number(smf, i);
+	       	track = smf_file_get_track_by_number(smf, i);
 		assert(track);
 
 		event = smf_track_get_last_event(track);
@@ -1166,7 +1166,7 @@ smf_get_length_seconds(const smf_t *smf)
   * Note that may be more than one "last event", if they occur at the same time.
   */
 int
-smf_event_is_last(const smf_event_t *event)
+smf_event_is_last(const SmfEvent *event)
 {
 	if (smf_get_length_pulses(event->track->smf) <= event->time_pulses)
 		return (1);

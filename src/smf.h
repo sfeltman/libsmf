@@ -220,21 +220,15 @@ extern "C" {
 #include <stdio.h>
 #include <glib.h>
 
-#if defined(__GNUC__) && __GNUC__ >= 4
-#define WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
-#else
-#define WARN_UNUSED_RESULT
-#endif
 
-
-typedef struct smf_struct smf_t;
-typedef struct smf_track_struct smf_track_t;
-typedef struct smf_event_struct smf_event_t;
-typedef struct smf_tempo_struct smf_tempo_t;
+typedef struct _SmfFile  SmfFile;
+typedef struct _SmfTempo SmfTempo;
+typedef struct _SmfTrack SmfTrack;
+typedef struct _SmfEvent SmfEvent;
 
 
 /** Represents a "song", that is, collection of one or more tracks. */
-struct smf_struct {
+struct _SmfFile {
 	int		format;
 
 	/** These fields are extracted from "division" field of MThd header.  Valid is _either_ ppqn or frames_per_second/resolution. */
@@ -260,46 +254,49 @@ struct smf_struct {
 	int		ref_count;
 };
 
-/* Routines for manipulating smf_t. */
-smf_t *smf_new(void) WARN_UNUSED_RESULT;
-void smf_delete(smf_t *smf);
-smf_t *smf_ref(smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
-void smf_unref(smf_t *smf);
+/* Routines for manipulating SmfFile. */
+SmfFile *smf_file_new(void) G_GNUC_WARN_UNUSED_RESULT;
+SmfFile *smf_file_ref(SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
+void smf_file_unref(SmfFile *smf);
 
-int smf_set_format(smf_t *smf, int format) WARN_UNUSED_RESULT;
-int smf_set_ppqn(smf_t *smf, int format) WARN_UNUSED_RESULT;
+int smf_file_set_format(SmfFile *smf, int format) G_GNUC_WARN_UNUSED_RESULT;
+int smf_file_set_ppqn(SmfFile *smf, int ppqn) G_GNUC_WARN_UNUSED_RESULT;
 
-char *smf_decode(const smf_t *smf) WARN_UNUSED_RESULT;
+char *smf_file_decode(const SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
 
-smf_track_t *smf_get_track_by_number(const smf_t *smf, int track_number) WARN_UNUSED_RESULT;
+SmfTrack *smf_file_get_track_by_number(const SmfFile *smf, int track_number) G_GNUC_WARN_UNUSED_RESULT;
 
-smf_event_t *smf_peek_next_event(smf_t *smf) WARN_UNUSED_RESULT;
-smf_event_t *smf_get_next_event(smf_t *smf) WARN_UNUSED_RESULT;
-void smf_skip_next_event(smf_t *smf);
+SmfEvent *smf_file_peek_next_event(SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
+SmfEvent *smf_file_get_next_event(SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
+void smf_file_skip_next_event(SmfFile *smf);
 
-void smf_rewind(smf_t *smf);
-int smf_seek_to_seconds(smf_t *smf, double seconds) WARN_UNUSED_RESULT;
-int smf_seek_to_pulses(smf_t *smf, int pulses) WARN_UNUSED_RESULT;
-int smf_seek_to_event(smf_t *smf, const smf_event_t *event) WARN_UNUSED_RESULT;
+void smf_file_rewind(SmfFile *smf);
+int smf_file_seek_to_seconds(SmfFile *smf, double seconds) G_GNUC_WARN_UNUSED_RESULT;
+int smf_file_seek_to_pulses(SmfFile *smf, int pulses) G_GNUC_WARN_UNUSED_RESULT;
+int smf_file_seek_to_event(SmfFile *smf, const SmfEvent *target) G_GNUC_WARN_UNUSED_RESULT;
 
-int smf_get_length_pulses(const smf_t *smf) WARN_UNUSED_RESULT;
-double smf_get_length_seconds(const smf_t *smf) WARN_UNUSED_RESULT;
-int smf_event_is_last(const smf_event_t *event) WARN_UNUSED_RESULT;
+int smf_file_get_length_pulses(const SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
+double smf_file_get_length_seconds(const SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
 
-void smf_add_track(smf_t *smf, smf_track_t *track);
-void smf_remove_track(smf_t *smf, smf_track_t *track);
+void smf_file_add_track(SmfFile *smf, SmfTrack *track);
+void smf_file_remove_track(SmfFile *smf, SmfTrack *track);
 
 /* Routines for loading SMF files. */
-smf_t *smf_load(const char *file_name) WARN_UNUSED_RESULT;
-smf_t *smf_load_from_memory(const void *buffer, const int buffer_length) WARN_UNUSED_RESULT;
+SmfFile *smf_file_load(const char *file_name) G_GNUC_WARN_UNUSED_RESULT;
+SmfFile *smf_file_load_from_memory(const void *buffer, const int buffer_length) G_GNUC_WARN_UNUSED_RESULT;
 
 /* Routine for writing SMF files. */
-int smf_save(smf_t *smf, const char *file_name) WARN_UNUSED_RESULT;
+int smf_file_save(SmfFile *smf, const char *file_name) G_GNUC_WARN_UNUSED_RESULT;
 
+/* Routines for manipulating SmfTempo. */
+SmfTempo *smf_file_get_tempo_by_pulses(const SmfFile *smf, int pulses) G_GNUC_WARN_UNUSED_RESULT;
+SmfTempo *smf_file_get_tempo_by_seconds(const SmfFile *smf, double seconds) G_GNUC_WARN_UNUSED_RESULT;
+SmfTempo *smf_file_get_tempo_by_number(const SmfFile *smf, int number) G_GNUC_WARN_UNUSED_RESULT;
+SmfTempo *smf_file_get_last_tempo(const SmfFile *smf) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Represents a single track. */
-struct smf_track_struct {
-	smf_t		*smf;
+struct _SmfTrack {
+	SmfFile		*smf;
 
 	int		track_number;
 	int		number_of_events;
@@ -327,30 +324,28 @@ struct smf_track_struct {
 	int		ref_count;
 };
 
-/* Routines for manipulating smf_track_t. */
-smf_track_t *smf_track_new(void) WARN_UNUSED_RESULT;
-void smf_track_delete(smf_track_t *track);
-void smf_track_remove_from_smf(smf_track_t *track);
-smf_track_t *smf_track_ref(smf_track_t *track) G_GNUC_WARN_UNUSED_RESULT;
-void smf_track_unref(smf_track_t *track);
+/* Routines for manipulating SmfTrack. */
+SmfTrack *smf_track_new(void) G_GNUC_WARN_UNUSED_RESULT;
+void smf_track_delete(SmfTrack *track);
+SmfTrack *smf_track_ref(SmfTrack *track) G_GNUC_WARN_UNUSED_RESULT;
+void smf_track_unref(SmfTrack *track);
 
-smf_event_t *smf_track_get_next_event(smf_track_t *track) WARN_UNUSED_RESULT;
-smf_event_t *smf_track_get_event_by_number(const smf_track_t *track, int event_number) WARN_UNUSED_RESULT;
-smf_event_t *smf_track_get_last_event(const smf_track_t *track) WARN_UNUSED_RESULT;
+SmfEvent *smf_track_get_next_event(SmfTrack *track) G_GNUC_WARN_UNUSED_RESULT;
+SmfEvent *smf_track_get_event_by_number(const SmfTrack *track, int event_number) G_GNUC_WARN_UNUSED_RESULT;
+SmfEvent *smf_track_get_last_event(const SmfTrack *track) G_GNUC_WARN_UNUSED_RESULT;
 
-void smf_track_add_event_delta_pulses(smf_track_t *track, smf_event_t *event, int pulses);
-void smf_track_add_event_pulses(smf_track_t *track, smf_event_t *event, int pulses);
-void smf_track_add_event_seconds(smf_track_t *track, smf_event_t *event, double seconds);
-int smf_track_add_eot_delta_pulses(smf_track_t *track, int delta) WARN_UNUSED_RESULT;
-int smf_track_add_eot_pulses(smf_track_t *track, int pulses) WARN_UNUSED_RESULT;
-int smf_track_add_eot_seconds(smf_track_t *track, double seconds) WARN_UNUSED_RESULT;
-
-void smf_track_remove_event(smf_track_t *track, smf_event_t *event);
+void smf_track_add_event_delta_pulses(SmfTrack *track, SmfEvent *event, int delta);
+void smf_track_add_event_pulses(SmfTrack *track, SmfEvent *event, int pulses);
+void smf_track_add_event_seconds(SmfTrack *track, SmfEvent *event, double seconds);
+int smf_track_add_eot_delta_pulses(SmfTrack *track, int delta) G_GNUC_WARN_UNUSED_RESULT;
+int smf_track_add_eot_pulses(SmfTrack *track, int pulses) G_GNUC_WARN_UNUSED_RESULT;
+int smf_track_add_eot_seconds(SmfTrack *track, double seconds) G_GNUC_WARN_UNUSED_RESULT;
+void smf_track_remove_event(SmfTrack *track, SmfEvent *event);
 
 /** Represents a single MIDI event or metaevent. */
-struct smf_event_struct {
+struct _SmfEvent {
 	/** Pointer to the track, or NULL if event is not attached. */
-	smf_track_t	*track;
+	SmfTrack	*track;
 
 	/** Number of this event in the track.  Events are numbered consecutively, starting from one. */
 	int		event_number;
@@ -382,30 +377,30 @@ struct smf_event_struct {
 	int		ref_count;
 };
 
+/* Routines for manipulating SmfEvent. */
+SmfEvent *smf_event_new(void) G_GNUC_WARN_UNUSED_RESULT;
+SmfEvent *smf_event_new_from_pointer(void *midi_data, int len) G_GNUC_WARN_UNUSED_RESULT;
+SmfEvent *smf_event_new_from_bytes(int first_byte, int second_byte, int third_byte) G_GNUC_WARN_UNUSED_RESULT;
+SmfEvent *smf_event_new_textual(int type, const char *text) G_GNUC_WARN_UNUSED_RESULT;
+void smf_event_delete(SmfEvent *event);
+void smf_event_remove_from_track(SmfEvent *event);
+SmfEvent *smf_event_ref(SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+void smf_event_unref(SmfEvent *event);
 
-/* Routines for manipulating smf_event_t. */
-smf_event_t *smf_event_new(void) WARN_UNUSED_RESULT;
-smf_event_t *smf_event_new_from_pointer(void *midi_data, int len) WARN_UNUSED_RESULT;
-smf_event_t *smf_event_new_from_bytes(int first_byte, int second_byte, int third_byte) WARN_UNUSED_RESULT;
-smf_event_t *smf_event_new_textual(int type, const char *text) WARN_UNUSED_RESULT;
-void smf_event_delete(smf_event_t *event);
-void smf_event_remove_from_track(smf_event_t *event);
-smf_event_t *smf_event_ref(smf_event_t *event) G_GNUC_WARN_UNUSED_RESULT;
-void smf_event_unref(smf_event_t *event);
-
-int smf_event_is_valid(const smf_event_t *event) WARN_UNUSED_RESULT;
-int smf_event_is_metadata(const smf_event_t *event) WARN_UNUSED_RESULT;
-int smf_event_is_system_realtime(const smf_event_t *event) WARN_UNUSED_RESULT;
-int smf_event_is_system_common(const smf_event_t *event) WARN_UNUSED_RESULT;
-int smf_event_is_sysex(const smf_event_t *event) WARN_UNUSED_RESULT;
-int smf_event_is_eot(const smf_event_t *event) WARN_UNUSED_RESULT;
-int smf_event_is_textual(const smf_event_t *event) WARN_UNUSED_RESULT;
-char *smf_event_decode(const smf_event_t *event) WARN_UNUSED_RESULT;
-char *smf_event_extract_text(const smf_event_t *event) WARN_UNUSED_RESULT;
+int smf_event_is_last(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+int smf_event_is_valid(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+int smf_event_is_metadata(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+int smf_event_is_system_realtime(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+int smf_event_is_system_common(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+int smf_event_is_sysex(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+int smf_event_is_eot(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+int smf_event_is_textual(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+char *smf_event_decode(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+char *smf_event_extract_text(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
 
 
 /** Describes a single tempo or time signature change. */
-struct smf_tempo_struct {
+struct _SmfTempo {
 	int time_pulses;
 	double time_seconds;
 	int microseconds_per_quarter_note;
@@ -416,16 +411,87 @@ struct smf_tempo_struct {
 	int ref_count;
 };
 
-smf_tempo_t *smf_tempo_ref(smf_tempo_t *tempo) G_GNUC_WARN_UNUSED_RESULT;
-void smf_tempo_unref(smf_tempo_t *tempo);
+/* Routines for manipulating SmfTempo. */
+SmfTempo *smf_tempo_ref(SmfTempo *tempo) G_GNUC_WARN_UNUSED_RESULT;
+void smf_tempo_unref(SmfTempo *tempo);
 
-/* Routines for manipulating smf_tempo_t. */
-smf_tempo_t *smf_get_tempo_by_pulses(const smf_t *smf, int pulses) WARN_UNUSED_RESULT;
-smf_tempo_t *smf_get_tempo_by_seconds(const smf_t *smf, double seconds) WARN_UNUSED_RESULT;
-smf_tempo_t *smf_get_tempo_by_number(const smf_t *smf, int number) WARN_UNUSED_RESULT;
-smf_tempo_t *smf_get_last_tempo(const smf_t *smf) WARN_UNUSED_RESULT;
+const char *smf_get_version(void) G_GNUC_WARN_UNUSED_RESULT;
 
-const char *smf_get_version(void) WARN_UNUSED_RESULT;
+/* Backwards compatable API/ABI */
+
+typedef SmfFile   		smf_t;
+typedef SmfTempo  		smf_tempo_t;
+typedef SmfTrack  		smf_track_t;
+typedef SmfEvent  		smf_event_t;
+
+G_DEPRECATED_FOR(smf_file_new)
+smf_t *smf_new(void) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_unref)
+void smf_delete(smf_t *smf);
+
+G_DEPRECATED_FOR(smf_file_set_format)
+int smf_set_format(smf_t *smf, int format) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_set_ppqn)
+int smf_set_ppqn(smf_t *smf, int format) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_decode)
+char *smf_decode(const smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_track_by_number)
+smf_track_t *smf_get_track_by_number(const smf_t *smf, int track_number) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_peek_next_event)
+smf_event_t *smf_peek_next_event(smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_next_event)
+smf_event_t *smf_get_next_event(smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_skip_next_event)
+void smf_skip_next_event(smf_t *smf);
+
+G_DEPRECATED_FOR(smf_file_rewind)
+void smf_rewind(smf_t *smf);
+
+G_DEPRECATED_FOR(smf_file_seek_to_seconds)
+int smf_seek_to_seconds(smf_t *smf, double seconds) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_seek_to_pulses)
+int smf_seek_to_pulses(smf_t *smf, int pulses) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_seek_to_event)
+int smf_seek_to_event(smf_t *smf, const smf_event_t *event) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_length_pulses)
+int smf_get_length_pulses(const smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_length_seconds)
+double smf_get_length_seconds(const smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_add_track)
+void smf_add_track(smf_t *smf, smf_track_t *track);
+
+G_DEPRECATED_FOR(smf_file_load)
+smf_t *smf_load(const char *file_name) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_load_from_memory)
+smf_t *smf_load_from_memory(const void *buffer, const int buffer_length) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_save)
+int smf_save(smf_t *smf, const char *file_name) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_tempo_by_pulses)
+smf_tempo_t *smf_get_tempo_by_pulses(const smf_t *smf, int pulses) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_tempo_by_seconds)
+smf_tempo_t *smf_get_tempo_by_seconds(const smf_t *smf, double seconds) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_tempo_by_number)
+smf_tempo_t *smf_get_tempo_by_number(const smf_t *smf, int number) G_GNUC_WARN_UNUSED_RESULT;
+
+G_DEPRECATED_FOR(smf_file_get_last_tempo)
+smf_tempo_t *smf_get_last_tempo(const smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
 
 #ifdef __cplusplus
 }

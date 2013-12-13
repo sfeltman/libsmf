@@ -859,7 +859,7 @@ load_file_into_buffer(void **file_buffer, int *file_buffer_length, const char *f
  * \return SMF or NULL, if loading failed.
   */
 smf_t *
-smf_load_from_memory(const void *buffer, const int buffer_length)
+smf_file_load_from_memory(const void *buffer, const int buffer_length)
 {
 	int i;
 
@@ -911,7 +911,7 @@ smf_load_from_memory(const void *buffer, const int buffer_length)
  * \return SMF or NULL, if loading failed.
  */
 smf_t *
-smf_load(const char *file_name)
+smf_file_load(const char *file_name)
 {
 	int file_buffer_length;
 	void *file_buffer;

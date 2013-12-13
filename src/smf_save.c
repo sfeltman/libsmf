@@ -617,7 +617,7 @@ assert_smf_saved_correctly(const smf_t *smf, const char *file_name)
   * \return 0, if saving was successfull.
   */
 int
-smf_save(smf_t *smf, const char *file_name)
+smf_file_save(smf_t *smf, const char *file_name)
 {
 	int i, error;
 	smf_track_t *track;

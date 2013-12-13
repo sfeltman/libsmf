@@ -596,7 +596,7 @@ smf_event_decode(const smf_event_t *event)
  * You should free the returned string afterwards, using free(3).
  */
 char *
-smf_decode(const smf_t *smf)
+smf_file_decode(const smf_t *smf)
 {
 	int off = 0;
 	char *buf;
