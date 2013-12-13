@@ -401,6 +401,7 @@ int smf_event_is_eot(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
 int smf_event_is_textual(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
 char *smf_event_decode(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
 char *smf_event_extract_text(const SmfEvent *event) G_GNUC_WARN_UNUSED_RESULT;
+unsigned char *smf_event_get_buffer(SmfEvent *event, int *length);
 
 
 /**
