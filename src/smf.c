@@ -63,11 +63,14 @@ smf_new(void)
 	}
 
 	memset(smf, 0, sizeof(smf_t));
+	smf->ref_count = 1;
 
-	smf->tracks_array = g_ptr_array_new();
+	smf->tracks_array = g_ptr_array_new_with_free_func(
+		(GDestroyNotify)smf_track_unref);
 	assert(smf->tracks_array);
 
-	smf->tempo_array = g_ptr_array_new();
+	smf->tempo_array = g_ptr_array_new_with_free_func(
+		(GDestroyNotify)smf_tempo_unref);
 	assert(smf->tempo_array);
 
 	cantfail = smf_set_ppqn(smf, 120);
@@ -87,19 +90,27 @@ smf_new(void)
 void
 smf_delete(smf_t *smf)
 {
-	/* Remove all the tracks, from last to first. */
-	while (smf->tracks_array->len > 0)
-		smf_track_delete(g_ptr_array_index(smf->tracks_array, smf->tracks_array->len - 1));
+	smf_unref(smf);
+}
 
-	smf_fini_tempo(smf);
+smf_t *
+smf_ref(smf_t *smf)
+{
+	g_return_val_if_fail (smf, NULL);
+	g_atomic_int_inc (&smf->ref_count);
+	return smf;
+}
 
-	assert(smf->tracks_array->len == 0);
-	assert(smf->number_of_tracks == 0);
-	g_ptr_array_free(smf->tracks_array, TRUE);
-	g_ptr_array_free(smf->tempo_array, TRUE);
+void
+smf_unref(smf_t *smf)
+{
+	if (g_atomic_int_dec_and_test (&smf->ref_count)) {
+		smf_fini_tempo(smf);
+		g_ptr_array_free(smf->tracks_array, TRUE);
+		g_ptr_array_free(smf->tempo_array, TRUE);
 
-	memset(smf, 0, sizeof(smf_t));
-	free(smf);
+		free(smf);
+	}
 }
 
 /**
@@ -116,9 +127,11 @@ smf_track_new(void)
 	}
 
 	memset(track, 0, sizeof(smf_track_t));
+	track->ref_count = 1;
 	track->next_event_number = -1;
 
-	track->events_array = g_ptr_array_new();
+	track->events_array = g_ptr_array_new_with_free_func(
+		(GDestroyNotify)smf_event_unref);
 	assert(track->events_array);
 
 	return (track);
@@ -131,21 +144,33 @@ void
 smf_track_delete(smf_track_t *track)
 {
 	assert(track);
-	assert(track->events_array);
 
-	/* Remove all the events, from last to first. */
-	while (track->events_array->len > 0)
-		smf_event_delete(g_ptr_array_index(track->events_array, track->events_array->len - 1));
+	if (track->smf) {
+		smf_remove_track(track->smf, track);
+	} else {
+		smf_track_unref(track);
+	}
+}
 
-	if (track->smf)
-		smf_track_remove_from_smf(track);
+smf_track_t *
+smf_track_ref(smf_track_t *track)
+{
+    g_return_val_if_fail (track, NULL);
+    g_atomic_int_inc (&track->ref_count);
+    return track;
+}
 
-	assert(track->events_array->len == 0);
-	assert(track->number_of_events == 0);
-	g_ptr_array_free(track->events_array, TRUE);
+void
+smf_track_unref(smf_track_t *track)
+{
+	g_return_if_fail (track);
+	g_return_if_fail (track->events_array);
 
-	memset(track, 0, sizeof(smf_track_t));
-	free(track);
+	if (g_atomic_int_dec_and_test (&track->ref_count)) {
+		g_ptr_array_free(track->events_array, TRUE);
+		memset(track, 0, sizeof(smf_track_t));
+		free(track);
+	}
 }
 
 
@@ -164,6 +189,7 @@ smf_add_track(smf_t *smf, smf_track_t *track)
 
 	smf->number_of_tracks++;
 	track->track_number = smf->number_of_tracks;
+	assert(smf->number_of_tracks == smf->tracks_array->len);
 
 	if (smf->number_of_tracks > 1) {
 		cantfail = smf_set_format(smf, 1);
@@ -175,22 +201,26 @@ smf_add_track(smf_t *smf, smf_track_t *track)
  * Detaches track from the smf.
  */
 void
-smf_track_remove_from_smf(smf_track_t *track)
+smf_remove_track(smf_t *smf, smf_track_t *track)
 {
 	int i, j;
 	smf_track_t *tmp;
 	smf_event_t *ev;
 
-	assert(track->smf != NULL);
+	assert(smf != NULL);
 
-	track->smf->number_of_tracks--;
+	assert(smf->tracks_array);
+	if (!g_ptr_array_remove(smf->tracks_array, track)) {
+	    g_critical("Track %d not found in song.", track->track_number);
+	    return;
+	}
 
-	assert(track->smf->tracks_array);
-	g_ptr_array_remove(track->smf->tracks_array, track);
+	smf->number_of_tracks--;
+	assert(smf->number_of_tracks == smf->tracks_array->len);
 
 	/* Renumber the rest of the tracks, so they are consecutively numbered. */
-	for (i = track->track_number; i <= track->smf->number_of_tracks; i++) {
-		tmp = smf_get_track_by_number(track->smf, i);
+	for (i = track->track_number; i <= smf->number_of_tracks; i++) {
+		tmp = smf_get_track_by_number(smf, i);
 		tmp->track_number = i;
 
 		/*
@@ -206,6 +236,14 @@ smf_track_remove_from_smf(smf_track_t *track)
 	track->track_number = -1;
 	track->smf = NULL;
 }
+
+void
+smf_track_remove_from_smf(smf_track_t *track)
+{
+	assert(track->smf);
+	smf_remove_track(track->smf, track);
+}
+
 
 /**
  * Allocates new smf_event_t structure.  The caller is responsible for allocating
@@ -224,6 +262,7 @@ smf_event_new(void)
 
 	memset(event, 0, sizeof(smf_event_t));
 
+	event->ref_count = 1;
 	event->delta_time_pulses = -1;
 	event->time_pulses = -1;
 	event->time_seconds = -1.0;
@@ -362,16 +401,36 @@ smf_event_new_from_bytes(int first_byte, int second_byte, int third_byte)
 void
 smf_event_delete(smf_event_t *event)
 {
-	if (event->track != NULL)
-		smf_event_remove_from_track(event);
-
-	if (event->midi_buffer != NULL) {
-		memset(event->midi_buffer, 0, event->midi_buffer_length);
-		free(event->midi_buffer);
+	g_return_if_fail (event);
+	if (event->track != NULL) {
+		smf_track_remove_event(event->track, event);
+	} else {
+	    smf_event_unref(event);
 	}
+}
 
-	memset(event, 0, sizeof(smf_event_t));
-	free(event);
+smf_event_t *
+smf_event_ref(smf_event_t *event)
+{
+    g_return_val_if_fail (event, NULL);
+    g_atomic_int_inc (&event->ref_count);
+    return event;
+}
+
+void
+smf_event_unref(smf_event_t *event)
+{
+	g_return_if_fail (event);
+
+	if (g_atomic_int_dec_and_test (&event->ref_count)) {
+		if (event->midi_buffer != NULL) {
+			memset(event->midi_buffer, 0, event->midi_buffer_length);
+			free(event->midi_buffer);
+		}
+
+		memset(event, 0, sizeof(smf_event_t));
+		free(event);
+	}
 }
 
 /**
@@ -578,16 +637,14 @@ smf_track_add_eot_seconds(smf_track_t *track, double seconds)
  * Detaches event from its track.
  */
 void
-smf_event_remove_from_track(smf_event_t *event)
+smf_track_remove_event(smf_track_t *track, smf_event_t *event)
 {
 	int i, was_last;
 	smf_event_t *tmp;
-	smf_track_t *track;
 
-	assert(event->track != NULL);
-	assert(event->track->smf != NULL);
+	assert(track != NULL);
+	assert(track->smf != NULL);
 
-	track = event->track;
 	was_last = smf_event_is_last(event);
 
 	/* Adjust ->delta_time_pulses of the next event. */
@@ -622,6 +679,13 @@ smf_event_remove_from_track(smf_event_t *event)
 	event->delta_time_pulses = -1;
 	event->time_pulses = -1;
 	event->time_seconds = -1.0;
+}
+
+void
+smf_event_remove_from_track(smf_event_t *event)
+{
+	assert(event->track != NULL);
+	smf_track_remove_event(event->track, event);
 }
 
 /**

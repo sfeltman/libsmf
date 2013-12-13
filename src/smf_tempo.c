@@ -91,6 +91,22 @@ new_tempo(smf_t *smf, int pulses)
 	return (tempo);
 }
 
+smf_tempo_t *
+smf_tempo_ref(smf_tempo_t *tempo)
+{
+    g_return_val_if_fail (tempo, NULL);
+    g_atomic_int_inc (&tempo->ref_count);
+    return tempo;
+}
+
+void
+smf_tempo_unref(smf_tempo_t *tempo)
+{
+	if (g_atomic_int_dec_and_test (&tempo->ref_count)) {
+		free(tempo);
+	}
+}
+
 static int
 add_tempo(smf_t *smf, int pulses, int tempo)
 {
@@ -186,9 +202,6 @@ remove_last_tempo_with_pulses(smf_t *smf, int pulses)
 	/* Workaround part two. */
 	if (tempo->time_pulses != pulses)
 		return;
-
-	memset(tempo, 0, sizeof(smf_tempo_t));
-	free(tempo);
 
 	g_ptr_array_remove_index(smf->tempo_array, smf->tempo_array->len - 1);
 }
@@ -341,19 +354,7 @@ smf_get_last_tempo(const smf_t *smf)
 void
 smf_fini_tempo(smf_t *smf)
 {
-	smf_tempo_t *tempo;
-
-	while (smf->tempo_array->len > 0) {
-		tempo = g_ptr_array_index(smf->tempo_array, smf->tempo_array->len - 1);
-		assert(tempo);
-
-		memset(tempo, 0, sizeof(smf_tempo_t));
-		free(tempo);
-
-		g_ptr_array_remove_index(smf->tempo_array, smf->tempo_array->len - 1);
-	}
-
-	assert(smf->tempo_array->len == 0);
+	g_ptr_array_set_size(smf->tempo_array, 0);
 }
 
 /**

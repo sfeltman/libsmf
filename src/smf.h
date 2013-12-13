@@ -257,12 +257,14 @@ struct smf_struct {
 	/** Private, used by smf_tempo.c. */
 	/** Array of pointers to smf_tempo_struct. */
 	GPtrArray	*tempo_array;
+	int		ref_count;
 };
-
 
 /* Routines for manipulating smf_t. */
 smf_t *smf_new(void) WARN_UNUSED_RESULT;
 void smf_delete(smf_t *smf);
+smf_t *smf_ref(smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
+void smf_unref(smf_t *smf);
 
 int smf_set_format(smf_t *smf, int format) WARN_UNUSED_RESULT;
 int smf_set_ppqn(smf_t *smf, int format) WARN_UNUSED_RESULT;
@@ -285,6 +287,7 @@ double smf_get_length_seconds(const smf_t *smf) WARN_UNUSED_RESULT;
 int smf_event_is_last(const smf_event_t *event) WARN_UNUSED_RESULT;
 
 void smf_add_track(smf_t *smf, smf_track_t *track);
+void smf_remove_track(smf_t *smf, smf_track_t *track);
 
 /* Routines for loading SMF files. */
 smf_t *smf_load(const char *file_name) WARN_UNUSED_RESULT;
@@ -320,13 +323,16 @@ struct smf_track_struct {
 	    but also implicitly, e.g. when calling smf_delete() with tracks still added to
 	    the smf; there is no mechanism for libsmf to notify you about removal of the track. */
 	void		*user_pointer;
-};
 
+	int		ref_count;
+};
 
 /* Routines for manipulating smf_track_t. */
 smf_track_t *smf_track_new(void) WARN_UNUSED_RESULT;
 void smf_track_delete(smf_track_t *track);
 void smf_track_remove_from_smf(smf_track_t *track);
+smf_track_t *smf_track_ref(smf_track_t *track) G_GNUC_WARN_UNUSED_RESULT;
+void smf_track_unref(smf_track_t *track);
 
 smf_event_t *smf_track_get_next_event(smf_track_t *track) WARN_UNUSED_RESULT;
 smf_event_t *smf_track_get_event_by_number(const smf_track_t *track, int event_number) WARN_UNUSED_RESULT;
@@ -339,6 +345,7 @@ int smf_track_add_eot_delta_pulses(smf_track_t *track, int delta) WARN_UNUSED_RE
 int smf_track_add_eot_pulses(smf_track_t *track, int pulses) WARN_UNUSED_RESULT;
 int smf_track_add_eot_seconds(smf_track_t *track, double seconds) WARN_UNUSED_RESULT;
 
+void smf_track_remove_event(smf_track_t *track, smf_event_t *event);
 
 /** Represents a single MIDI event or metaevent. */
 struct smf_event_struct {
@@ -372,6 +379,7 @@ struct smf_event_struct {
 	    but also implicitly, e.g. when calling smf_track_delete() with events still added to
 	    the track; there is no mechanism for libsmf to notify you about removal of the event. */
 	void		*user_pointer;
+	int		ref_count;
 };
 
 
@@ -382,6 +390,8 @@ smf_event_t *smf_event_new_from_bytes(int first_byte, int second_byte, int third
 smf_event_t *smf_event_new_textual(int type, const char *text) WARN_UNUSED_RESULT;
 void smf_event_delete(smf_event_t *event);
 void smf_event_remove_from_track(smf_event_t *event);
+smf_event_t *smf_event_ref(smf_event_t *event) G_GNUC_WARN_UNUSED_RESULT;
+void smf_event_unref(smf_event_t *event);
 
 int smf_event_is_valid(const smf_event_t *event) WARN_UNUSED_RESULT;
 int smf_event_is_metadata(const smf_event_t *event) WARN_UNUSED_RESULT;
@@ -403,7 +413,11 @@ struct smf_tempo_struct {
 	int denominator;
 	int clocks_per_click;
 	int notes_per_note;
+	int ref_count;
 };
+
+smf_tempo_t *smf_tempo_ref(smf_tempo_t *tempo) G_GNUC_WARN_UNUSED_RESULT;
+void smf_tempo_unref(smf_tempo_t *tempo);
 
 /* Routines for manipulating smf_tempo_t. */
 smf_tempo_t *smf_get_tempo_by_pulses(const smf_t *smf, int pulses) WARN_UNUSED_RESULT;
