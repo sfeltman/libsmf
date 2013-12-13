@@ -84,5 +84,9 @@ case "$host" in
 esac
 AC_SUBST([WS2_32_IF_NEEDED])
 
-AC_CONFIG_FILES([Makefile smf.pc src/Makefile man/Makefile])
+AC_CONFIG_FILES([Makefile
+                 smf.pc
+                 src/Makefile
+                 man/Makefile
+                 tests/Makefile])
 AC_OUTPUT

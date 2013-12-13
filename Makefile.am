@@ -1,4 +1,4 @@
-SUBDIRS = src man
+SUBDIRS = src man tests
 
 EXTRA_DIST = smf.pc.in
 
