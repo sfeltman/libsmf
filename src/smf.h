@@ -216,6 +216,14 @@ typedef struct _SmfTempo SmfTempo;
 typedef struct _SmfTrack SmfTrack;
 typedef struct _SmfEvent SmfEvent;
 
+#if HAVE_INTROSPECTION
+#include <glib-object.h>
+
+GType smf_file_get_type  (void) G_GNUC_CONST;
+GType smf_track_get_type  (void) G_GNUC_CONST;
+GType smf_tempo_get_type  (void) G_GNUC_CONST;
+GType smf_event_get_type  (void) G_GNUC_CONST;
+#endif /* HAVE_INTROSPECTION */
 
 /**
  * SmfFile:

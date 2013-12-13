@@ -47,6 +47,22 @@
 #include "smf.h"
 #include "smf_private.h"
 
+
+#if HAVE_INTROSPECTION
+G_DEFINE_BOXED_TYPE (SmfFile, smf_file,
+                     smf_file_ref, smf_file_unref);
+
+G_DEFINE_BOXED_TYPE (SmfTrack, smf_track,
+                     smf_track_ref, smf_track_unref);
+
+G_DEFINE_BOXED_TYPE (SmfEvent, smf_event,
+                     smf_event_ref, smf_event_unref);
+
+G_DEFINE_BOXED_TYPE (SmfTempo, smf_tempo,
+                     smf_tempo_ref, smf_tempo_unref);
+#endif /* HAVE_INTROSPECTION */
+
+
 /**
  * smf_file_new:
  *

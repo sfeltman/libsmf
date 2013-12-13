@@ -1,11 +1,37 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
+# libsmf package version number, (as distinct from shared library version)
+m4_define([libsmf_major], [1])
+m4_define([libsmf_minor], [4])
+m4_define([libsmf_version], [libsmf_major.libsmf_minor])
+
+# libtool version related macros
+# See: http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html
+m4_define([libsmf_lt_current],  [1])
+m4_define([libsmf_lt_revision], [0])
+m4_define([libsmf_lt_age],      [1])
+
 AC_PREREQ([2.69])
-AC_INIT([libsmf],[1.3+],[stump@stump.io])
+AC_INIT([libsmf],
+        [libsmf_version],
+        [http://bugs],
+        [libsmf],
+        [http://website])
 AM_INIT_AUTOMAKE([-Wall foreign])
 AC_CONFIG_SRCDIR([src/smf.c])
 AC_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+
+AC_SUBST([LIBSMF_MAJOR_VERSION],  [libsmf_major])
+AC_SUBST([LIBSMF_MINOR_VERSION],  [libsmf_minor])
+AC_SUBST([LIBSMF_API_VERSION],    [libsmf_lt_current.libsmf_lt_revision])
+AC_SUBST([LIBSMF_VERSION],        [libsmf_version])
+
+# libtool versioning
+AC_SUBST([LT_CURRENT],  [libsmf_lt_current])
+AC_SUBST([LT_REVISION], [libsmf_lt_revision])
+AC_SUBST([LT_AGE],      [libsmf_lt_age])
 
 # Checks for programs.
 AC_PROG_CC
@@ -45,9 +71,13 @@ AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([memset pow strdup strerror strtol strchr])
 
+# Check for GLib
 PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.2)
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
+
+# Check for GObject Introspection
+GOBJECT_INTROSPECTION_CHECK([1.30.0])
 
 case "$host" in
   *-cygwin|*-mingw*) WS2_32_IF_NEEDED=-lws2_32 ;;
