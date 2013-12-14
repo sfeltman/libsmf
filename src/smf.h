@@ -27,7 +27,7 @@
 
 /**
  * SECTION:smf
- * @title: smf - libsmf developer documentation
+ * @title: libsmf
  * @short_description: Public interface declaration for libsmf, Standard MIDI File format library.
  * @include: smf.h
  *
@@ -436,6 +436,7 @@ void smf_tempo_unref(SmfTempo *tempo);
 const char *smf_get_version(void) G_GNUC_WARN_UNUSED_RESULT;
 
 /* Backwards compatable API/ABI */
+#ifndef __GTK_DOC_IGNORE__
 
 typedef SmfFile   		smf_t;
 typedef SmfTempo  		smf_tempo_t;
@@ -514,6 +515,8 @@ G_DEPRECATED_FOR(smf_file_get_last_tempo)
 smf_tempo_t *smf_get_last_tempo(const smf_t *smf) G_GNUC_WARN_UNUSED_RESULT;
 
 #endif /*__GI_SCANNER__*/
+#endif /*__GTK_DOC_IGNORE__ */
+
 #ifdef __cplusplus
 }
 #endif

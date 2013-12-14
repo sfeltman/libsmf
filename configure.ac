@@ -79,6 +79,16 @@ AC_SUBST(GLIB_LIBS)
 # Check for GObject Introspection
 GOBJECT_INTROSPECTION_CHECK([1.30.0])
 
+# Check for gtk-doc
+GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
+
+AC_ARG_ENABLE(man,
+              [AC_HELP_STRING([--enable-man],
+                              [regenerate man pages from Docbook [default=no]])],enable_man=yes,
+              enable_man=no)
+AC_PATH_PROG([XSLTPROC], [xsltproc])
+AM_CONDITIONAL(ENABLE_MAN, test x$enable_man != xno)
+
 case "$host" in
   *-cygwin|*-mingw*) WS2_32_IF_NEEDED=-lws2_32 ;;
 esac
@@ -88,5 +98,6 @@ AC_CONFIG_FILES([Makefile
                  smf.pc
                  src/Makefile
                  man/Makefile
+                 man/version.xml
                  tests/Makefile])
 AC_OUTPUT
