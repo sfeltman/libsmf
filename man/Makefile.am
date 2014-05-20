@@ -99,7 +99,7 @@ dist-local-check-mans-enabled:
 endif
 
 #MAINTAINERCLEANFILES
-CLEANFILES += \
+CLEANFILES = \
 	$(man_MANS) \
 	$(BUILT_SOURCES)
 

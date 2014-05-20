@@ -80,7 +80,11 @@ AC_SUBST(GLIB_LIBS)
 GOBJECT_INTROSPECTION_CHECK([1.30.0])
 
 # Check for gtk-doc
+m4_ifdef([GTK_DOC_CHECK], [
 GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
+],[
+AM_CONDITIONAL([ENABLE_GTK_DOC], false)
+])
 
 AC_ARG_ENABLE(man,
               [AC_HELP_STRING([--enable-man],
